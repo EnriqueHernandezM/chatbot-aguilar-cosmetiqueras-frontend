@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 97%;
+    --foreground: 220 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+
+    --primary: 168 55% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 93%;
+    --secondary-foreground: 220 15% 25%;
+
+    --muted: 210 10% 94%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 168 40% 94%;
+    --accent-foreground: 168 55% 25%;
+
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
+    --ring: 168 55% 38%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --chat-bubble-agent: 168 40% 94%;
+    --chat-bubble-user: 0 0% 100%;
+    --chat-bubble-note: 45 80% 94%;
+    --chat-bubble-note-border: 45 60% 70%;
+    --status-active: 168 55% 38%;
+    --status-waiting: 35 85% 55%;
+    --status-closed: 220 10% 65%;
+    --topbar: 0 0% 100%;
+    --topbar-foreground: 220 15% 15%;
+    --conversation-hover: 168 30% 96%;
+    --unread-badge: 168 55% 38%;
+  }
+
+  .dark {
+    --background: 220 15% 10%;
+    --foreground: 210 15% 90%;
+
+    --card: 220 15% 13%;
+    --card-foreground: 210 15% 90%;
+
+    --popover: 220 15% 13%;
+    --popover-foreground: 210 15% 90%;
+
+    --primary: 168 50% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 12% 18%;
+    --secondary-foreground: 210 15% 80%;
+
+    --muted: 220 12% 18%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 168 30% 18%;
+    --accent-foreground: 168 40% 75%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 12% 20%;
+    --input: 220 12% 20%;
+    --ring: 168 50% 45%;
+
+    --chat-bubble-agent: 168 25% 18%;
+    --chat-bubble-user: 220 15% 16%;
+    --chat-bubble-note: 45 30% 16%;
+    --chat-bubble-note-border: 45 40% 35%;
+    --status-active: 168 50% 45%;
+    --status-waiting: 35 70% 50%;
+    --status-closed: 220 10% 45%;
+    --topbar: 220 15% 13%;
+    --topbar-foreground: 210 15% 90%;
+    --conversation-hover: 168 20% 14%;
+    --unread-badge: 168 50% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
