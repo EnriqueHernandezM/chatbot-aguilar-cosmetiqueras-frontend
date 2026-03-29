@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   base: "/chatbot-aguilar-cosmetiqueras-frontend/",
+  build: {
+    outDir: "dist",
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
