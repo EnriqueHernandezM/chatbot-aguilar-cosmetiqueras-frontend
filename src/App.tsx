@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import ConversationsPage from "./pages/ConversationsPage";
 import ConversationDetailPage from "./pages/ConversationDetailPage";
 import NotFound from "./pages/NotFound";
+import { HashRouter } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -22,8 +23,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />
-    <Route path="/" element={<ProtectedRoute><ConversationsPage /></ProtectedRoute>} />
-    <Route path="/conversations/:id" element={<ProtectedRoute><ConversationDetailPage /></ProtectedRoute>} />
+    <Route
+      path="/"
+      element={
+        <ProtectedRoute>
+          <ConversationsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/conversations/:id"
+      element={
+        <ProtectedRoute>
+          <ConversationDetailPage />
+        </ProtectedRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -35,9 +50,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <HashRouter>
             <AppRoutes />
-          </BrowserRouter>
+          </HashRouter>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>
