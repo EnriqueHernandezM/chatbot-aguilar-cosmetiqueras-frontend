@@ -23,10 +23,10 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
+      - name: Install
         run: npm install
 
-      - name: Build project
+      - name: Build
         run: npm run build
 
       - name: Upload artifact
@@ -39,5 +39,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         uses: actions/deploy-pages@v4
