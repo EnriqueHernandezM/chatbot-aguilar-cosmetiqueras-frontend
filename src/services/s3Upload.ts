@@ -28,25 +28,23 @@ async function sha256Hex(input: string | ArrayBuffer): Promise<string> {
   const encoder = new TextEncoder();
   const data = typeof input === "string" ? encoder.encode(input) : input;
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function hmacSha256Raw(key: ArrayBuffer | Uint8Array | string, message: string): Promise<ArrayBuffer> {
   const encoder = new TextEncoder();
-  const keyData =
-    typeof key === "string"
-      ? encoder.encode(key)
-      : key instanceof Uint8Array
-        ? key
-        : new Uint8Array(key);
-
-  const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const keyData = typeof key === "string" ? encoder.encode(key) : key instanceof Uint8Array ? key : new Uint8Array(key);
+  const cryptoKey = await crypto.subtle.importKey("raw", keyData as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(message));
 }
 
 async function hmacSha256Hex(key: ArrayBuffer | Uint8Array | string, message: string): Promise<string> {
   const signature = await hmacSha256Raw(key, message);
-  return Array.from(new Uint8Array(signature)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function getSigningKey(secretAccessKey: string, dateStamp: string, region: string, service: string) {
@@ -88,28 +86,10 @@ async function uploadSingleImage(file: File): Promise<string> {
     `x-amz-date:${amzDate}`,
     ...(S3_SESSION_TOKEN ? [`x-amz-security-token:${S3_SESSION_TOKEN}`] : []),
   ].join("\n");
-  const signedHeaders = [
-    "content-type",
-    "host",
-    "x-amz-content-sha256",
-    "x-amz-date",
-    ...(S3_SESSION_TOKEN ? ["x-amz-security-token"] : []),
-  ].join(";");
-  const canonicalRequest = [
-    "PUT",
-    `/${encodeS3Key(key)}`,
-    "",
-    `${canonicalHeaders}\n`,
-    signedHeaders,
-    payloadHash,
-  ].join("\n");
+  const signedHeaders = ["content-type", "host", "x-amz-content-sha256", "x-amz-date", ...(S3_SESSION_TOKEN ? ["x-amz-security-token"] : [])].join(";");
+  const canonicalRequest = ["PUT", `/${encodeS3Key(key)}`, "", `${canonicalHeaders}\n`, signedHeaders, payloadHash].join("\n");
   const credentialScope = `${dateStamp}/${S3_REGION}/s3/aws4_request`;
-  const stringToSign = [
-    "AWS4-HMAC-SHA256",
-    amzDate,
-    credentialScope,
-    await sha256Hex(canonicalRequest),
-  ].join("\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, await sha256Hex(canonicalRequest)].join("\n");
   const signingKey = await getSigningKey(S3_SECRET_ACCESS_KEY, dateStamp, S3_REGION, "s3");
   const signature = await hmacSha256Hex(signingKey, stringToSign);
   const authorization = `AWS4-HMAC-SHA256 Credential=${S3_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;

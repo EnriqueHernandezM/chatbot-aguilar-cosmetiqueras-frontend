@@ -18,10 +18,10 @@ const originLabels: Record<OriginCategory, string> = {
 };
 
 export default function ConversationsPage() {
-  const { conversations, isLoading, statusFilter, setStatusFilter, flowFilter, setFlowFilter, flowCounts, originFilter, setOriginFilter } = useConversations();
+  const { conversations, isLoading, statusFilter, setStatusFilter, flowFilter, setFlowFilter, flowCounts, originFilter, setOriginFilter } = useConversations({ enablePolling: true });
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-  const showFlowFilter = statusFilter === "all" || statusFilter === "active";
+  const showFlowFilter = statusFilter === "active";
 
   const handleLogout = async () => {
     try {

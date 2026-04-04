@@ -9,11 +9,14 @@ import {
   deleteConversation as apiDeleteConversation,
   getConversations,
   markConversationRead,
+  takeConversation as apiTakeConversation,
   updateConversationStatus as apiUpdateConversationStatus,
 } from "@/api/conversationsApi";
 import { getConversationMessages, sendConversationMessage } from "@/api/messagesApi";
 import { uploadImagesToS3 } from "@/services/s3Upload";
 import { toast } from "sonner";
+import { useAuth } from "@/modules/auth/useAuth";
+import { useConversationPolling } from "@/hooks/useConversationPolling";
 
 function getStoredOrigin(): OriginCategory {
   try {
@@ -36,7 +39,8 @@ function getBackendStatusFilter(statusFilter: InboxFilter): ConversationStatus |
   return undefined;
 }
 
-export function useConversations() {
+export function useConversations(options?: { enablePolling?: boolean }) {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<InboxFilter>("all");
@@ -62,6 +66,20 @@ export function useConversations() {
   useEffect(() => {
     void loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    if (statusFilter !== "active" && flowFilter !== "all") {
+      setFlowFilter("all");
+    }
+  }, [flowFilter, statusFilter]);
+
+  useConversationPolling({
+    enabled: options?.enablePolling === true && !isLoading,
+    statusFilter: backendStatusFilter,
+    conversations,
+    setConversations,
+    currentUserId: user?.id,
+  });
 
   const setOriginFilter = useCallback((value: OriginCategory) => {
     setOriginFilterState(value);
@@ -100,7 +118,7 @@ export function useConversations() {
         break;
     }
 
-    if (flowFilter !== "all") {
+    if (statusFilter === "active" && flowFilter !== "all") {
       const states = flowStateMapping[flowFilter];
       list = list.filter((conversation) => states.includes(conversation.currentState));
     }
@@ -159,6 +177,40 @@ export function useConversations() {
       toast.error(message);
     }
   }, [conversations]);
+
+  const takeConversation = useCallback(async (id: string) => {
+    const previousConversations = conversations;
+
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === id
+          ? {
+              ...conversation,
+              status: "waiting_human" as ConversationStatus,
+              assignedTo: user
+                ? {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role ?? "",
+                    active: true,
+                  }
+                : conversation.assignedTo,
+            }
+          : conversation,
+      ),
+    );
+
+    try {
+      await apiTakeConversation(id);
+      toast.success("Conversacion tomada");
+    } catch (error) {
+      setConversations(previousConversations);
+      const message = error instanceof Error ? error.message : "No se pudo tomar la conversacion";
+      toast.error(message);
+      throw error;
+    }
+  }, [conversations, user]);
 
   const markRead = useCallback(async (id: string) => {
     const previousConversations = conversations;
@@ -239,6 +291,7 @@ export function useConversations() {
     originFilter,
     setOriginFilter,
     assignConversation,
+    takeConversation,
     updateStatus,
     markRead,
     closeConversation,

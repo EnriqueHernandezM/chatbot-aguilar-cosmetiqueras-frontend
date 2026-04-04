@@ -1,8 +1,17 @@
-import { AssignedUser, Conversation, ConversationStatus } from "@/modules/types";
+import { AssignedUser, Conversation, ConversationStatus, MessageSender } from "@/modules/types";
 import { apiFetch } from "@/api/apiClient";
 
 interface GetConversationsParams {
   status?: ConversationStatus;
+}
+
+interface ConversationLastMessageApiResponse {
+  id?: string;
+  _id?: string;
+  from?: string;
+  type?: string;
+  content?: string | null;
+  createdAt?: string;
 }
 
 interface ConversationApiResponse {
@@ -15,15 +24,23 @@ interface ConversationApiResponse {
   status?: ConversationStatus;
   currentState?: string;
   origin?: Conversation["origin"];
-  assignedTo?: string | {
-    _id?: string;
-    id?: string;
-    name?: string;
-    email?: string;
-    role?: string;
-    active?: boolean;
-  };
-  lastMessage?: string;
+  lastMessageId?: string;
+  lastMessageSender?: string;
+  lastMessageFrom?: string;
+  assignedTo?:
+    | string
+    | {
+        _id?: string;
+        id?: string;
+        name?: string;
+        email?: string;
+        role?: string;
+        active?: boolean;
+      };
+  lastMessage?:
+    | string
+    | ConversationLastMessageApiResponse
+    | null;
   lastMessageAt?: string;
   lastReadAt?: string | null;
   lockUntil?: string | null;
@@ -114,6 +131,96 @@ function normalizeAssignedTo(assignedTo: ConversationApiResponse["assignedTo"]):
   };
 }
 
+function normalizeMessageSender(sender?: string): MessageSender | undefined {
+  if (sender === "user" || sender === "agent" || sender === "bot") {
+    return sender;
+  }
+
+  if (sender === "customer" || sender === "client" || sender === "lead") {
+    return "user";
+  }
+
+  return undefined;
+}
+
+function getLastMessageObject(lastMessage: ConversationApiResponse["lastMessage"]): ConversationLastMessageApiResponse | undefined {
+  if (lastMessage && typeof lastMessage === "object") {
+    return lastMessage;
+  }
+
+  return undefined;
+}
+
+function getLastMessageId(lastMessage: ConversationApiResponse["lastMessage"], fallbackId?: string): string | undefined {
+  if (typeof fallbackId === "string") {
+    return fallbackId;
+  }
+
+  const lastMessageObject = getLastMessageObject(lastMessage);
+
+  if (lastMessageObject) {
+    if (typeof lastMessageObject.id === "string") {
+      return lastMessageObject.id;
+    }
+
+    if (typeof lastMessageObject._id === "string") {
+      return lastMessageObject._id;
+    }
+  }
+
+  return undefined;
+}
+
+function getLastMessageSender(apiConversation: ConversationApiResponse): MessageSender | undefined {
+  const directSender = normalizeMessageSender(apiConversation.lastMessageSender);
+
+  if (directSender) {
+    return directSender;
+  }
+
+  const fallbackSender = normalizeMessageSender(apiConversation.lastMessageFrom);
+
+  if (fallbackSender) {
+    return fallbackSender;
+  }
+
+  const lastMessageObject = getLastMessageObject(apiConversation.lastMessage);
+
+  if (lastMessageObject) {
+    return normalizeMessageSender(lastMessageObject.from);
+  }
+
+  return undefined;
+}
+
+function getLastMessageContent(lastMessage: ConversationApiResponse["lastMessage"]): string {
+  if (typeof lastMessage === "string" && lastMessage.trim()) {
+    return lastMessage;
+  }
+
+  const lastMessageObject = getLastMessageObject(lastMessage);
+
+  if (lastMessageObject && typeof lastMessageObject.content === "string" && lastMessageObject.content.trim()) {
+    return lastMessageObject.content;
+  }
+
+  return "Sin mensajes";
+}
+
+function getLastMessageAt(apiConversation: ConversationApiResponse): string {
+  if (typeof apiConversation.lastMessageAt === "string") {
+    return apiConversation.lastMessageAt;
+  }
+
+  const lastMessageObject = getLastMessageObject(apiConversation.lastMessage);
+
+  if (lastMessageObject && typeof lastMessageObject.createdAt === "string") {
+    return lastMessageObject.createdAt;
+  }
+
+  return new Date(0).toISOString();
+}
+
 function mapConversation(apiConversation: ConversationApiResponse): Conversation {
   const id = typeof apiConversation.id === "string" ? apiConversation.id : typeof apiConversation._id === "string" ? apiConversation._id : "";
   const waId = typeof apiConversation.waId === "string" ? apiConversation.waId : "";
@@ -129,8 +236,10 @@ function mapConversation(apiConversation: ConversationApiResponse): Conversation
     currentState: typeof apiConversation.currentState === "string" ? apiConversation.currentState : "MENU",
     origin: normalizeConversationOrigin(typeof apiConversation.origin === "string" ? apiConversation.origin : undefined),
     assignedTo: normalizeAssignedTo(apiConversation.assignedTo),
-    lastMessage: typeof apiConversation.lastMessage === "string" && apiConversation.lastMessage.trim() ? apiConversation.lastMessage : "Sin mensajes",
-    lastMessageAt: typeof apiConversation.lastMessageAt === "string" ? apiConversation.lastMessageAt : new Date(0).toISOString(),
+    lastMessageId: getLastMessageId(apiConversation.lastMessage, apiConversation.lastMessageId),
+    lastMessageSender: getLastMessageSender(apiConversation),
+    lastMessage: getLastMessageContent(apiConversation.lastMessage),
+    lastMessageAt: getLastMessageAt(apiConversation),
     lastReadAt: typeof apiConversation.lastReadAt === "string" || apiConversation.lastReadAt === null ? apiConversation.lastReadAt : null,
     lockUntil: typeof apiConversation.lockUntil === "string" || apiConversation.lockUntil === null ? apiConversation.lockUntil : null,
     unreadCount: typeof apiConversation.unreadCount === "number" ? apiConversation.unreadCount : 0,
@@ -159,6 +268,20 @@ export async function getConversations(params: GetConversationsParams = {}): Pro
   return conversations.map(mapConversation);
 }
 
+export async function getConversationUpdates(since: string): Promise<Conversation[]> {
+  const searchParams = new URLSearchParams();
+  searchParams.set("since", since);
+
+  const response = await apiFetch(`/conversations/updates?${searchParams.toString()}`);
+
+  await assertOk(response, "No se pudieron cargar las actualizaciones de conversaciones");
+
+  const data = await readJson<ConversationApiResponse[] | { data?: ConversationApiResponse[] }>(response);
+  const conversations = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+
+  return conversations.map(mapConversation);
+}
+
 export async function deleteConversations(ids: string[]): Promise<void> {
   const response = await apiFetch("/conversations", {
     method: "DELETE",
@@ -175,6 +298,14 @@ export async function assignConversation(conversationId: string): Promise<void> 
   });
 
   await assertOk(response, "No se pudo asignar la conversacion");
+}
+
+export async function takeConversation(conversationId: string): Promise<void> {
+  const response = await apiFetch(`/conversations/${conversationId}/take`, {
+    method: "PATCH",
+  });
+
+  await assertOk(response, "No se pudo tomar la conversacion");
 }
 
 export async function updateConversationStatus(conversationId: string, status: ConversationStatus): Promise<void> {

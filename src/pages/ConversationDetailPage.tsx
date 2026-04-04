@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ConversationStateBadge } from '@/components/ConversationStateBadge';
 import { ArrowLeft, User, MoreVertical, XCircle, Trash2, Flame, CircleDollarSign } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,12 +29,13 @@ import {
 export default function ConversationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { allConversations, isLoading, closeConversation, removeConversation, updateConversationSale } = useConversations();
+  const { allConversations, isLoading, closeConversation, removeConversation, takeConversation, updateConversationSale } = useConversations();
   const conversation = allConversations.find((c) => c.id === id);
   const { messages, isLoading: isLoadingMessages, isSending, sendMessage } = useMessages(id || '', conversation);
   const lead = useLead(conversation);
   const [showLead, setShowLead] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isTakingConversation, setIsTakingConversation] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,6 +72,16 @@ export default function ConversationDetailPage() {
     navigate('/');
   };
 
+  const handleTakeConversation = async () => {
+    setIsTakingConversation(true);
+
+    try {
+      await takeConversation(conversation.id);
+    } finally {
+      setIsTakingConversation(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col h-screen">
       <header className="bg-card border-b border-border safe-top sticky top-0 z-30">
@@ -102,6 +114,19 @@ export default function ConversationDetailPage() {
               isClosedSale={conversation.isClosedSale}
             />
             <StatusBadge status={conversation.status} />
+
+            {conversation.status === 'active' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleTakeConversation}
+                disabled={isTakingConversation}
+                className="h-9"
+              >
+                Tomar conversacion
+              </Button>
+            )}
 
             <button
               onClick={() => setShowLead(true)}

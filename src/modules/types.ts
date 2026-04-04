@@ -51,6 +51,8 @@ export interface Conversation {
   currentState: ConversationState;
   origin: ConversationOrigin;
   assignedTo?: AssignedUser;
+  lastMessageId?: string;
+  lastMessageSender?: MessageSender;
   lastMessage: string;
   lastMessageAt: string;
   lastReadAt?: string | null;
@@ -58,6 +60,7 @@ export interface Conversation {
   unreadCount: number;
   isPotentialSale: boolean;
   isClosedSale: boolean;
+  hasRecentUpdate?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -22,6 +22,7 @@ export function ConversationItem({ conversation, onClick, isActive }: Conversati
   const hasUnread = conversation.unreadCount > 0;
   const displayName = conversation.leadName || conversation.leadPhone;
   const isBotHandlingConversation = conversation.status === 'active';
+  const hasRecentUpdate = conversation.hasRecentUpdate === true;
 
   return (
     <button
@@ -29,6 +30,7 @@ export function ConversationItem({ conversation, onClick, isActive }: Conversati
       className={cn(
         'w-full flex items-center gap-3 px-4 py-3.5 transition-colors text-left border-b border-border active:bg-accent relative',
         isBotHandlingConversation && 'bg-muted/45',
+        hasRecentUpdate && 'bg-primary/5',
         isActive ? 'bg-accent' : 'hover:bg-conversation-hover',
       )}
     >
