@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  base: "/chatbot-aguilar-cosmetiqueras-frontend/",
+  base: "/chatbot-aguilar-cosmetiqueras-page/",
   build: {
     outDir: "dist",
   },
@@ -22,30 +22,39 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
-      filename: "manifest.json",
-      includeAssets: ["icon.svg", "mask-icon.svg", "apple-touch-icon.svg"],
+      filename: "manifest.webmanifest",
+      includeAssets: ["apple-touch-icon.svg", "icon.svg", "mask-icon.svg"],
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: "AgentDesk",
         short_name: "AgentDesk",
         description: "Dashboard de conversaciones para agentes de soporte y ventas por WhatsApp.",
         lang: "es-MX",
-        start_url: "/chatbot-aguilar-cosmetiqueras-frontend/",
-        scope: "/chatbot-aguilar-cosmetiqueras-frontend/",
+        start_url: "/chatbot-aguilar-cosmetiqueras-page/",
+        scope: "/chatbot-aguilar-cosmetiqueras-page/",
         display: "standalone",
         orientation: "portrait",
         background_color: "#0f172a",
         theme_color: "#0f172a",
         icons: [
           {
-            src: "icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
             purpose: "any",
           },
           {
-            src: "mask-icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
             purpose: "maskable",
           },
           {

@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/chatbot-aguilar-cosmetiqueras-page/dev-sw.js?dev-sw', { scope: '/chatbot-aguilar-cosmetiqueras-page/', type: 'classic' })
