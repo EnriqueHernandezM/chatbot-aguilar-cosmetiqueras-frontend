@@ -13,7 +13,7 @@ import {
   updateConversationStatus as apiUpdateConversationStatus,
 } from "@/api/conversationsApi";
 import { getConversationMessages, sendConversationMessage } from "@/api/messagesApi";
-import { uploadImagesToS3 } from "@/services/s3Upload";
+import { uploadImagesToCloudinary } from "@/services/cloudinaryUpload";
 import { toast } from "sonner";
 import { useAuth } from "@/modules/auth/useAuth";
 import { useConversationPolling } from "@/hooks/useConversationPolling";
@@ -364,7 +364,7 @@ export function useMessages(conversationId: string, conversation?: Conversation)
     setIsSending(true);
 
     try {
-      const uploadedImageUrls = type === "image" && files?.length ? await uploadImagesToS3(files) : undefined;
+      const uploadedImageUrls = type === "image" && files?.length ? await uploadImagesToCloudinary(files) : undefined;
       const normalizedContent = type === "image" ? JSON.stringify(uploadedImageUrls ?? []) : content;
       const createdMessage = await sendConversationMessage(
         {
