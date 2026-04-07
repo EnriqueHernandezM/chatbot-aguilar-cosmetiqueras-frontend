@@ -1,4 +1,5 @@
 import { clearAccessToken, getAccessToken } from "@/api/authStorage";
+import { AUTH_SESSION_EXPIRED_EVENT } from "@/modules/auth/authContext.shared";
 
 export const API_BASE_URL = import.meta.env.DEV ? "http://localhost:8082" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "");
 
@@ -34,8 +35,12 @@ export async function apiFetch(endpoint: string, options: ApiRequestOptions = {}
       // Ignore storage failures and continue redirect flow.
     }
 
-    if (typeof window !== "undefined" && !window.location.hash.startsWith("#/login")) {
-      window.location.hash = "/login";
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+
+      if (!window.location.hash.startsWith("#/login")) {
+        window.location.hash = "/login";
+      }
     }
   }
 

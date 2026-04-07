@@ -1,8 +1,8 @@
 import { clearAccessToken, setAccessToken } from "@/api/authStorage";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { loginUser, logoutUser } from "@/api/userApi";
 import { User } from "@/modules/types";
-import { AuthContext } from "@/modules/auth/authContext.shared";
+import { AUTH_SESSION_EXPIRED_EVENT, AuthContext } from "@/modules/auth/authContext.shared";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -38,6 +38,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("agent_user");
       clearAccessToken();
     }
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+
+      try {
+        localStorage.removeItem("agent_user");
+      } catch {
+        // Ignore storage failures and keep redirect flow running.
+      }
+
+      clearAccessToken();
+    };
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
   }, []);
 
   return <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>{children}</AuthContext.Provider>;

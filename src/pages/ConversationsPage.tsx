@@ -5,6 +5,7 @@ import { FlowFilter } from "@/components/FlowFilter";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { useAuth } from "@/modules/auth/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, MessageSquare, Globe, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -18,10 +19,12 @@ const originLabels: Record<OriginCategory, string> = {
 };
 
 export default function ConversationsPage() {
-  const { conversations, isLoading, statusFilter, setStatusFilter, flowFilter, setFlowFilter, flowCounts, originFilter, setOriginFilter } = useConversations({ enablePolling: true });
+  const { conversations, isLoading, reloadConversations, statusFilter, setStatusFilter, flowFilter, setFlowFilter, flowCounts, originFilter, setOriginFilter } = useConversations({ enablePolling: true });
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const showFlowFilter = statusFilter === "active";
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const headerTouchStartYRef = useRef<number | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -32,10 +35,53 @@ export default function ConversationsPage() {
     }
   };
 
+  const handleRefresh = async () => {
+    if (isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+
+    try {
+      await reloadConversations();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleHeaderTouchStart = (event: React.TouchEvent<HTMLElement>) => {
+    headerTouchStartYRef.current = event.touches[0]?.clientY ?? null;
+  };
+
+  const handleHeaderTouchEnd = async (event: React.TouchEvent<HTMLElement>) => {
+    const startY = headerTouchStartYRef.current;
+    const endY = event.changedTouches[0]?.clientY;
+    headerTouchStartYRef.current = null;
+
+    if (startY === null || endY === undefined) {
+      return;
+    }
+
+    const pullDistance = endY - startY;
+
+    if (pullDistance >= 70) {
+      await handleRefresh();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       {/* Top bar */}
-      <header className="bg-card border-b border-border safe-top sticky top-0 z-30">
+      <header
+        className="bg-card border-b border-border safe-top sticky top-0 z-30"
+        onTouchStart={handleHeaderTouchStart}
+        onTouchEnd={(event) => {
+          void handleHeaderTouchEnd(event);
+        }}
+        onTouchCancel={() => {
+          headerTouchStartYRef.current = null;
+        }}
+      >
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
@@ -81,7 +127,10 @@ export default function ConversationsPage() {
       </header>
 
       {/* Conversation list */}
-      <main className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+      <main
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y]"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <MessageSquare className="w-12 h-12 mb-3 opacity-30" />
