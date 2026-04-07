@@ -94,6 +94,12 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   * {
     @apply border-border;
   }
@@ -102,6 +108,7 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'DM Sans', system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
   }
 
   /* Hide scrollbar on mobile for cleaner look */

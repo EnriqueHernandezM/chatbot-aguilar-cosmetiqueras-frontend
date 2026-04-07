@@ -33,7 +33,7 @@ export default function ConversationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] bg-background grid grid-rows-[auto,minmax(0,1fr)] overflow-hidden">
       {/* Top bar */}
       <header className="bg-card border-b border-border safe-top sticky top-0 z-30">
         <div className="flex items-center justify-between px-4 py-3">
@@ -81,7 +81,7 @@ export default function ConversationsPage() {
       </header>
 
       {/* Conversation list */}
-      <main className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+      <main className="min-h-0 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <MessageSquare className="w-12 h-12 mb-3 opacity-30" />

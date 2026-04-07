@@ -10,6 +10,7 @@ import {
   getConversations,
   markConversationRead,
   takeConversation as apiTakeConversation,
+  updateConversationSale as apiUpdateConversationSale,
   updateConversationStatus as apiUpdateConversationStatus,
 } from "@/api/conversationsApi";
 import { getConversationMessages, sendConversationMessage } from "@/api/messagesApi";
@@ -37,6 +38,15 @@ function getBackendStatusFilter(statusFilter: InboxFilter): ConversationStatus |
   }
 
   return undefined;
+}
+
+function getConversationActivityTime(conversation: Conversation) {
+  const lastMessageTime = new Date(conversation.lastMessageAt).getTime();
+  const updatedTime = new Date(conversation.updatedAt).getTime();
+  return Math.max(
+    Number.isFinite(lastMessageTime) ? lastMessageTime : 0,
+    Number.isFinite(updatedTime) ? updatedTime : 0,
+  );
 }
 
 export function useConversations(options?: { enablePolling?: boolean }) {
@@ -127,7 +137,7 @@ export function useConversations(options?: { enablePolling?: boolean }) {
       list = list.filter((conversation) => conversation.origin === originFilter);
     }
 
-    return [...list].sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    return [...list].sort((a, b) => getConversationActivityTime(b) - getConversationActivityTime(a));
   }, [conversations, statusFilter, flowFilter, originFilter]);
 
   const assignConversation = useCallback(async (id: string, agentId: string) => {
@@ -263,6 +273,8 @@ export function useConversations(options?: { enablePolling?: boolean }) {
   }, [conversations]);
 
   const updateConversationSale = useCallback(async (id: string, saleType: "potential" | "closed") => {
+    const previousConversations = conversations;
+
     setConversations((prev) =>
       prev.map((conversation) =>
         conversation.id === id
@@ -275,8 +287,22 @@ export function useConversations(options?: { enablePolling?: boolean }) {
       ),
     );
 
-    toast.success(saleType === "potential" ? "Marcada como venta potencial" : "Marcada como venta cerrada");
-  }, []);
+    try {
+      const targetConversation = previousConversations.find((conversation) => conversation.id === id);
+
+      await apiUpdateConversationSale(id, {
+        isPotentialSale: saleType === "potential" ? true : targetConversation?.isPotentialSale ?? false,
+        isClosedSale: saleType === "closed" ? true : targetConversation?.isClosedSale ?? false,
+      });
+
+      toast.success(saleType === "potential" ? "Marcada como venta potencial" : "Marcada como venta cerrada");
+    } catch (error) {
+      setConversations(previousConversations);
+      const message = error instanceof Error ? error.message : "No se pudo actualizar el estado de venta";
+      toast.error(message);
+      throw error;
+    }
+  }, [conversations]);
 
   return {
     conversations: filtered,

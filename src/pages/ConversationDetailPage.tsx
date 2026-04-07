@@ -37,10 +37,18 @@ export default function ConversationDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isTakingConversation, setIsTakingConversation] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const hasAutoScrolledRef = useRef(false);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    hasAutoScrolledRef.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    if (!isLoadingMessages && messages.length > 0 && !hasAutoScrolledRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      hasAutoScrolledRef.current = true;
+    }
+  }, [isLoadingMessages, messages]);
 
   if (isLoading) {
     return (
@@ -83,7 +91,7 @@ export default function ConversationDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col h-screen">
+    <div className="h-[100dvh] bg-background grid grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden">
       <header className="bg-card border-b border-border safe-top sticky top-0 z-30">
         <div className="flex items-center gap-3 px-2 py-3">
           <button
@@ -178,7 +186,7 @@ export default function ConversationDetailPage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-3 py-4 hide-scrollbar">
+      <main className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 hide-scrollbar [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
         {isLoadingMessages ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Cargando mensajes...

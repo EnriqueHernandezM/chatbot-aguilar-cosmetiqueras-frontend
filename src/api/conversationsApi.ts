@@ -326,6 +326,19 @@ export async function markConversationRead(conversationId: string): Promise<void
   await assertOk(response, "No se pudo marcar la conversacion como leida");
 }
 
+export async function updateConversationSale(
+  conversationId: string,
+  payload: { isPotentialSale: boolean; isClosedSale: boolean },
+): Promise<void> {
+  const response = await apiFetch(`/conversations/${conversationId}/sale`, {
+    method: "PATCH",
+    includeJsonContentType: true,
+    body: JSON.stringify(payload),
+  });
+
+  await assertOk(response, "No se pudo actualizar el estado de venta de la conversacion");
+}
+
 export async function closeConversation(conversationId: string): Promise<void> {
   await updateConversationStatus(conversationId, "closed");
 }

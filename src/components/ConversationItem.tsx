@@ -23,6 +23,7 @@ export function ConversationItem({ conversation, onClick, isActive }: Conversati
   const displayName = conversation.leadName || conversation.leadPhone;
   const isBotHandlingConversation = conversation.status === 'active';
   const hasRecentUpdate = conversation.hasRecentUpdate === true;
+  const assignedAgentName = conversation.assignedTo?.name?.trim();
 
   return (
     <button
@@ -49,13 +50,20 @@ export function ConversationItem({ conversation, onClick, isActive }: Conversati
       {/* Content */}
       <div className="flex-1 min-w-0 relative z-10">
         {/* Row 1: Name + Time */}
-        <div className="flex items-center justify-between mb-0.5">
-          <span className={cn(
-            'text-[15px] truncate',
-            hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground'
-          )}>
-            {displayName}
-          </span>
+        <div className="flex items-start justify-between gap-2 mb-0.5">
+          <div className="min-w-0">
+            <span className={cn(
+              'block text-[15px] truncate',
+              hasUnread ? 'font-bold text-foreground' : 'font-medium text-foreground'
+            )}>
+              {displayName}
+            </span>
+            {assignedAgentName && (
+              <span className="block text-[11px] text-muted-foreground truncate">
+                Asignado a: {assignedAgentName}
+              </span>
+            )}
+          </div>
           <span className={cn(
             'text-xs flex-shrink-0 ml-2',
             hasUnread ? 'text-primary font-semibold' : 'text-muted-foreground'

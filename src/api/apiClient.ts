@@ -1,6 +1,6 @@
 import { getAccessToken } from "@/api/authStorage";
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "";
+export const API_BASE_URL = import.meta.env.DEV ? "http://localhost:8082" : (import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "");
 
 type ApiRequestOptions = RequestInit & {
   includeJsonContentType?: boolean;
@@ -8,12 +8,7 @@ type ApiRequestOptions = RequestInit & {
 };
 
 export async function apiFetch(endpoint: string, options: ApiRequestOptions = {}): Promise<Response> {
-  const {
-    includeJsonContentType = false,
-    requiresAuth = true,
-    headers,
-    ...restOptions
-  } = options;
+  const { includeJsonContentType = false, requiresAuth = true, headers, ...restOptions } = options;
 
   const token = requiresAuth ? getAccessToken() : null;
   const requestHeaders = new Headers(headers);
