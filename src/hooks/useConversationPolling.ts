@@ -34,6 +34,27 @@ function isSparseConversationUpdate(conversation: Conversation) {
   return !conversation.lastMessageId && conversation.lastMessage === "Sin mensajes";
 }
 
+async function showPwaNotification(body: string) {
+  if (typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
+    return;
+  }
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification("Nuevo mensaje", {
+        body,
+        tag: `conversation-update-${Date.now()}`,
+      });
+      return;
+    } catch {
+      // Fallback below if the SW is not ready yet.
+    }
+  }
+
+  new window.Notification("Nuevo mensaje", { body });
+}
+
 export function useConversationPolling({
   enabled,
   statusFilter,
@@ -203,7 +224,7 @@ export function useConversationPolling({
 
         if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
           for (const body of notifications) {
-            new window.Notification("Nuevo mensaje", { body });
+            void showPwaNotification(body);
           }
         }
 
