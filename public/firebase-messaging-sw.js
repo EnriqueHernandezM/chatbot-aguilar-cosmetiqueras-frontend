@@ -15,9 +15,23 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 const appBaseUrl = params.get("appBaseUrl") ?? self.location.origin;
+const assetBaseUrl = new URL("./", appBaseUrl).toString();
 
 function getHandledByLabel(value) {
-  return value === "human" ? "Humano" : "Bot";
+  return value === "bot" ? "Bot" : "Humano";
+}
+
+function buildNotificationOptions({ title, preview, handledBy, conversationId, url }) {
+  return {
+    body: `${preview} - ${handledBy}`,
+    icon: `${assetBaseUrl}pwa-192x192.png`,
+    badge: `${assetBaseUrl}pwa-72x72.png`,
+    data: {
+      url,
+      conversationId,
+    },
+    tag: conversationId ? `conversation-${conversationId}` : undefined,
+  };
 }
 
 messaging.onBackgroundMessage((payload) => {
@@ -28,14 +42,10 @@ messaging.onBackgroundMessage((payload) => {
   const conversationId = data.conversationId;
   const url = conversationId ? `${appBaseUrl}#/conversations/${conversationId}` : `${appBaseUrl}#/`;
 
-  self.registration.showNotification(title, {
-    body: `${preview} - ${handledBy}`,
-    data: {
-      url,
-      conversationId,
-    },
-    tag: conversationId ? `conversation-${conversationId}` : undefined,
-  });
+  self.registration.showNotification(
+    title,
+    buildNotificationOptions({ title, preview, handledBy, conversationId, url }),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

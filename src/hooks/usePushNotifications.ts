@@ -26,7 +26,11 @@ function getDeviceName() {
 }
 
 function getHandledByLabel(value?: string) {
-  return value === "human" ? "Humano" : "Bot";
+  return value === "bot" ? "Bot" : "Humano";
+}
+
+function getNotificationAssetUrl(fileName: string) {
+  return `${window.location.origin}${import.meta.env.BASE_URL}${fileName}`;
 }
 
 function buildNotificationOptions(data: ForegroundNotificationData) {
@@ -38,6 +42,8 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
     title,
     options: {
       body: `${preview} - ${handledBy}`,
+      icon: getNotificationAssetUrl("pwa-192x192.png"),
+      badge: getNotificationAssetUrl("pwa-72x72.png"),
       data: {
         conversationId: data.conversationId,
         url: data.conversationId

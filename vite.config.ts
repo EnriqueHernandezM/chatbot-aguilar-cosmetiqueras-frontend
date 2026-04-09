@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       injectRegister: "auto",
       filename: "manifest.webmanifest",
-      includeAssets: ["apple-touch-icon.svg", "icon.svg", "mask-icon.svg"],
+      includeAssets: ["pwa-72x72.png", "pwa-192x192.png", "pwa-512x512.png", "mask-icon.svg"],
       devOptions: {
         enabled: true,
       },
@@ -39,6 +39,12 @@ export default defineConfig(({ mode }) => ({
         background_color: "#0f172a",
         theme_color: "#0f172a",
         icons: [
+          {
+            src: "pwa-72x72.png",
+            sizes: "72x72",
+            type: "image/png",
+            purpose: "any",
+          },
           {
             src: "pwa-192x192.png",
             sizes: "192x192",
@@ -56,12 +62,6 @@ export default defineConfig(({ mode }) => ({
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
-          },
-          {
-            src: "apple-touch-icon.svg",
-            sizes: "180x180",
-            type: "image/svg+xml",
-            purpose: "any",
           },
         ],
       },

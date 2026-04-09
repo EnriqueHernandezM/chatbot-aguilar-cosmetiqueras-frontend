@@ -218,6 +218,10 @@ function getLastMessageAt(apiConversation: ConversationApiResponse): string {
     return lastMessageObject.createdAt;
   }
 
+  if (typeof apiConversation.updatedAt === "string") {
+    return apiConversation.updatedAt;
+  }
+
   return new Date(0).toISOString();
 }
 
