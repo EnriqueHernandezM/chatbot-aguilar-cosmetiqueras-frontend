@@ -1,5 +1,4 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
-import { useLocation } from "react-router-dom";
 import { getConversationUpdates, getConversations } from "@/api/conversationsApi";
 import { Conversation, ConversationStatus, MessageSender } from "@/modules/types";
 
@@ -34,25 +33,8 @@ function isSparseConversationUpdate(conversation: Conversation) {
   return !conversation.lastMessageId && conversation.lastMessage === "Sin mensajes";
 }
 
-async function showPwaNotification(body: string) {
-  if (typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
-    return;
-  }
-
-  if ("serviceWorker" in navigator) {
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification("Nuevo mensaje", {
-        body,
-        tag: `conversation-update-${Date.now()}`,
-      });
-      return;
-    } catch {
-      // Fallback below if the SW is not ready yet.
-    }
-  }
-
-  new window.Notification("Nuevo mensaje", { body });
+function getConversationMessageKey(conversation: Conversation) {
+  return conversation.lastMessageId ?? conversation.lastMessageAt ?? conversation.updatedAt;
 }
 
 export function useConversationPolling({
@@ -60,9 +42,7 @@ export function useConversationPolling({
   statusFilter,
   conversations,
   setConversations,
-  currentUserId,
 }: UseConversationPollingOptions) {
-  const location = useLocation();
   const intervalRef = useRef<number | null>(null);
   const lastCheckRef = useRef<string>(new Date().toISOString());
   const lastMessageMapRef = useRef<Record<string, string | undefined>>({});
@@ -77,21 +57,11 @@ export function useConversationPolling({
     const nextMap: Record<string, string | undefined> = {};
 
     for (const conversation of conversations) {
-      nextMap[conversation.id] = conversation.lastMessageId ?? conversation.updatedAt;
+      nextMap[conversation.id] = getConversationMessageKey(conversation);
     }
 
     lastMessageMapRef.current = nextMap;
   }, [conversations]);
-
-  useEffect(() => {
-    if (!enabled || typeof window === "undefined" || !("Notification" in window)) {
-      return;
-    }
-
-    if (window.Notification.permission === "default") {
-      void window.Notification.requestPermission();
-    }
-  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
@@ -136,13 +106,10 @@ export function useConversationPolling({
         }
 
         const dedupedUpdates = Array.from(new Map(updates.map((conversation) => [conversation.id, conversation])).values());
-        const currentConversationId = location.pathname.startsWith("/conversations/") ? location.pathname.split("/")[2] : undefined;
-        const notifications: string[] = [];
-
         setConversations((previous) => {
           const previousMap = new Map(previous.map((conversation) => [conversation.id, conversation]));
-          const updatedIds = new Set<string>();
-          const nextUpdated: Conversation[] = [];
+          const nextPinnedToTop: Conversation[] = [];
+          const nextInPlace = new Map<string, Conversation>();
           const nextMessageMap = { ...lastMessageMapRef.current };
           const activeStatusFilter = statusFilterRef.current;
 
@@ -160,48 +127,38 @@ export function useConversationPolling({
               hasRecentUpdate: true,
             };
 
-            updatedIds.add(nextConversation.id);
-
             if (!shouldKeepConversation(nextConversation, activeStatusFilter)) {
               delete nextMessageMap[nextConversation.id];
               continue;
             }
 
-            const previousLastMessageId = nextMessageMap[nextConversation.id];
-            const lastMessageChanged =
-              (typeof nextConversation.lastMessageId === "string" || typeof nextConversation.updatedAt === "string") &&
-              previousLastMessageId !== (nextConversation.lastMessageId ?? nextConversation.updatedAt);
+            const previousMessageKey = nextMessageMap[nextConversation.id];
+            const nextMessageKey = getConversationMessageKey(nextConversation);
+            const shouldMoveToTop = previousConversation ? previousMessageKey !== nextMessageKey : true;
 
-            nextMessageMap[nextConversation.id] = nextConversation.lastMessageId ?? nextConversation.updatedAt;
-            nextUpdated.push(nextConversation);
+            nextMessageMap[nextConversation.id] = nextMessageKey;
 
-            const isAssignedToCurrentUser =
-              !!nextConversation.assignedTo?.id && !!currentUserId && nextConversation.assignedTo.id === currentUserId;
-            const isUnassignedConversation = !nextConversation.assignedTo?.id;
-            const shouldNotifyCurrentUser = isUnassignedConversation || isAssignedToCurrentUser;
-            const notificationBody =
-              typeof nextConversation.lastMessage === "string" && nextConversation.lastMessage.trim() && nextConversation.lastMessage !== "Sin mensajes"
-                ? nextConversation.lastMessage
-                : isUnassignedConversation
-                  ? `Nueva conversacion de ${nextConversation.leadName || nextConversation.leadPhone || "un cliente"}`
-                  : `Actividad nueva en la conversacion de ${nextConversation.leadName || nextConversation.leadPhone || "un cliente"}`;
-
-            if (
-              lastMessageChanged &&
-              shouldNotifyCurrentUser &&
-              currentConversationId !== nextConversation.id
-            ) {
-              notifications.push(notificationBody);
+            if (shouldMoveToTop) {
+              nextPinnedToTop.push(nextConversation);
+            } else {
+              nextInPlace.set(nextConversation.id, nextConversation);
             }
           }
 
           lastMessageMapRef.current = nextMessageMap;
 
-          const remaining = previous.filter(
-            (conversation) => !updatedIds.has(conversation.id) && shouldKeepConversation(conversation, activeStatusFilter),
-          );
+          const remaining = previous
+            .filter((conversation) => shouldKeepConversation(conversation, activeStatusFilter))
+            .map((conversation) => nextInPlace.get(conversation.id) ?? conversation)
+            .filter((conversation) => !nextPinnedToTop.some((item) => item.id === conversation.id));
 
-          return [...nextUpdated, ...remaining];
+          const newInPlace = dedupedUpdates
+            .map((conversation) => conversation.id)
+            .filter((id) => !previousMap.has(id))
+            .map((id) => nextInPlace.get(id))
+            .filter((conversation): conversation is Conversation => !!conversation);
+
+          return [...nextPinnedToTop, ...remaining, ...newInPlace];
         });
 
         for (const conversation of dedupedUpdates) {
@@ -220,12 +177,6 @@ export function useConversationPolling({
 
             delete highlightTimeoutsRef.current[conversationId];
           }, HIGHLIGHT_DURATION_MS);
-        }
-
-        if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
-          for (const body of notifications) {
-            void showPwaNotification(body);
-          }
         }
 
         lastCheckRef.current = startedAt;
@@ -255,5 +206,5 @@ export function useConversationPolling({
 
       highlightTimeoutsRef.current = {};
     };
-  }, [currentUserId, enabled, location.pathname, setConversations]);
+  }, [enabled, setConversations]);
 }

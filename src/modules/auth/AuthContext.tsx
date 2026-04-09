@@ -1,4 +1,5 @@
 import { clearAccessToken, setAccessToken } from "@/api/authStorage";
+import { clearStoredFcmToken, unregisterStoredFcmToken } from "@/api/notificationsApi";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { loginUser, logoutUser } from "@/api/userApi";
 import { User } from "@/modules/types";
@@ -32,10 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      await unregisterStoredFcmToken().catch(() => {
+        // Keep logout usable even if token cleanup fails.
+      });
+
       await logoutUser();
     } finally {
       setUser(null);
       localStorage.removeItem("agent_user");
+      clearStoredFcmToken();
       clearAccessToken();
     }
   }, []);
@@ -50,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ignore storage failures and keep redirect flow running.
       }
 
+      clearStoredFcmToken();
       clearAccessToken();
     };
 

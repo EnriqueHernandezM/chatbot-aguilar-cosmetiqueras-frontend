@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/modules/auth/AuthContext";
 import { useAuth } from "@/modules/auth/useAuth";
 import { ThemeProvider } from "@/modules/theme/ThemeContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import LoginPage from "./pages/LoginPage";
 import ConversationsPage from "./pages/ConversationsPage";
 import ConversationDetailPage from "./pages/ConversationDetailPage";
@@ -16,6 +17,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
+  usePushNotifications();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

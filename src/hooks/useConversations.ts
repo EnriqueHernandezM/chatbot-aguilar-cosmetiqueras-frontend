@@ -42,11 +42,13 @@ function getBackendStatusFilter(statusFilter: InboxFilter): ConversationStatus |
 
 function getConversationActivityTime(conversation: Conversation) {
   const lastMessageTime = new Date(conversation.lastMessageAt).getTime();
-  const updatedTime = new Date(conversation.updatedAt).getTime();
-  return Math.max(
-    Number.isFinite(lastMessageTime) ? lastMessageTime : 0,
-    Number.isFinite(updatedTime) ? updatedTime : 0,
-  );
+  const createdTime = new Date(conversation.createdAt).getTime();
+
+  if (Number.isFinite(lastMessageTime) && lastMessageTime > 0) {
+    return lastMessageTime;
+  }
+
+  return Number.isFinite(createdTime) ? createdTime : 0;
 }
 
 export function useConversations(options?: { enablePolling?: boolean }) {
