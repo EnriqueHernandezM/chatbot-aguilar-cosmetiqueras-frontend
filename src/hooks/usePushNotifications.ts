@@ -7,6 +7,9 @@ import { useAuth } from "@/modules/auth/useAuth";
 const FIREBASE_MESSAGING_ENABLED = (import.meta.env.VITE_ENABLE_FIREBASE_MESSAGING ?? "false") === "true";
 
 interface ForegroundNotificationData {
+  title?: string;
+  body?: string;
+  chatId?: string;
   conversationId?: string;
   phone?: string;
   preview?: string;
@@ -34,23 +37,26 @@ function getNotificationAssetUrl(fileName: string) {
 }
 
 function buildNotificationOptions(data: ForegroundNotificationData) {
-  const title = data.phone?.trim() || "Nuevo mensaje";
-  const preview = data.preview?.trim() || "Tienes un mensaje nuevo";
+  const conversationId = data.conversationId?.trim() || data.chatId?.trim();
+  const title = data.title?.trim() || data.phone?.trim() || "Nuevo mensaje";
+  const preview = data.body?.trim() || data.preview?.trim() || "Tienes un mensaje nuevo";
   const handledBy = getHandledByLabel(data.handledBy);
+  const body = data.handledBy ? `${preview} - ${handledBy}` : preview;
 
   return {
     title,
     options: {
-      body: `${preview} - ${handledBy}`,
+      body,
       icon: getNotificationAssetUrl("pwa-192x192.png"),
       badge: getNotificationAssetUrl("pwa-72x72.png"),
       data: {
-        conversationId: data.conversationId,
-        url: data.conversationId
-          ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${data.conversationId}`
+        conversationId,
+        chatId: conversationId,
+        url: conversationId
+          ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}`
           : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
       },
-      tag: data.conversationId ? `conversation-${data.conversationId}` : undefined,
+      tag: conversationId ? `conversation-${conversationId}` : undefined,
     },
   };
 }
