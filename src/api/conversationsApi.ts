@@ -100,7 +100,8 @@ function getDisplayName(apiConversation: ConversationApiResponse, waId: string):
     return apiConversation.leadName.trim();
   }
 
-  return waId ? `Contacto ${waId.slice(-4)}` : "Contacto sin nombre";
+  const fallbackPhone = getDisplayPhone(apiConversation, waId);
+  return fallbackPhone || "Contacto sin nombre";
 }
 
 function getDisplayPhone(apiConversation: ConversationApiResponse, waId: string): string {

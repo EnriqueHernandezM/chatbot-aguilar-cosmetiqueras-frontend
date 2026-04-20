@@ -17,12 +17,12 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
   if (isNote) {
     return (
-      <div className="flex justify-center my-2 animate-slide-up">
-        <div className="max-w-[85%] bg-chat-note border border-chat-note-border rounded-lg px-4 py-2.5 flex items-start gap-2">
+      <div className="my-1.5 flex w-full max-w-full justify-center overflow-hidden animate-slide-up">
+        <div className="flex max-w-[92%] min-w-0 items-start gap-2 rounded-lg border border-chat-note-border bg-chat-note px-3 py-2">
           <StickyNote className="w-4 h-4 text-chat-note-border mt-0.5 flex-shrink-0" />
-          <div>
+          <div className="min-w-0">
             <span className="text-xs font-medium text-muted-foreground block mb-0.5">Nota interna</span>
-            <p className="text-sm text-foreground">{message.content}</p>
+            <p className="text-sm text-foreground [overflow-wrap:anywhere]">{message.content}</p>
           </div>
         </div>
       </div>
@@ -30,10 +30,10 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   }
 
   return (
-    <div className={cn('flex mb-2 animate-slide-up', isRight ? 'justify-end' : 'justify-start')}>
+    <div className={cn('mb-1.5 flex w-full max-w-full overflow-hidden animate-slide-up', isRight ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-2.5',
+          'max-w-[92%] min-w-0 rounded-2xl px-3 py-2',
           isRight ? 'bg-chat-agent rounded-br-md' : 'bg-chat-user border border-border rounded-bl-md',
         )}
       >
@@ -55,12 +55,15 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         ) : null}
 
         {message.content && (
-          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+          <p className={cn(
+            'whitespace-pre-wrap text-sm leading-snug text-foreground [overflow-wrap:anywhere]',
+            isRight && 'break-all',
+          )}>
             {formatWhatsAppText(message.content)}
           </p>
         )}
 
-        <span className="text-[10px] text-muted-foreground block text-right mt-1">{time}</span>
+        <span className="mt-1 block text-right text-[10px] text-muted-foreground">{time}</span>
       </div>
     </div>
   );

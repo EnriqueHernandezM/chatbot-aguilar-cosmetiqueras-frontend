@@ -83,6 +83,14 @@ export interface Message {
   updatedAt: string;
 }
 
+export interface QuickReplyTemplate {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  order?: number;
+}
+
 export interface AuthCredentials {
   email: string;
   password: string;

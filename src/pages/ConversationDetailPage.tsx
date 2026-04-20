@@ -1,59 +1,60 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useMessages, useLead, useConversations } from '@/hooks/useConversations';
-import { ChatBubble } from '@/components/ChatBubble';
-import { ChatInput } from '@/components/ChatInput';
-import { LeadPanel } from '@/components/LeadPanel';
-import { StatusBadge } from '@/components/StatusBadge';
-import { ConversationStateBadge } from '@/components/ConversationStateBadge';
-import { ArrowLeft, User, MoreVertical, XCircle, Trash2, Flame, CircleDollarSign } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { useParams, useNavigate } from "react-router-dom";
+import { useMessages, useLead, useConversations } from "@/hooks/useConversations";
+import { ChatBubble } from "@/components/ChatBubble";
+import { ChatInput } from "@/components/ChatInput";
+import { LeadPanel } from "@/components/LeadPanel";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ConversationStateBadge } from "@/components/ConversationStateBadge";
+import { ArrowLeft, User, MoreVertical, XCircle, Trash2, Flame, CircleDollarSign } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function ConversationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { allConversations, isLoading, closeConversation, removeConversation, takeConversation, updateConversationSale } = useConversations();
   const conversation = allConversations.find((c) => c.id === id);
-  const { messages, isLoading: isLoadingMessages, isSending, sendMessage } = useMessages(id || '', conversation);
+  const { messages, isLoading: isLoadingMessages, isSending, sendMessage } = useMessages(id || "", conversation);
   const lead = useLead(conversation);
   const [showLead, setShowLead] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isTakingConversation, setIsTakingConversation] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolledRef = useRef(false);
+  const previousMessageCountRef = useRef(0);
 
   useEffect(() => {
     hasAutoScrolledRef.current = false;
+    previousMessageCountRef.current = 0;
   }, [id]);
 
   useEffect(() => {
     if (!isLoadingMessages && messages.length > 0 && !hasAutoScrolledRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
       hasAutoScrolledRef.current = true;
     }
+  }, [isLoadingMessages, messages]);
+
+  useEffect(() => {
+    if (isLoadingMessages || messages.length === 0) {
+      previousMessageCountRef.current = messages.length;
+      return;
+    }
+
+    if (messages.length > previousMessageCountRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: hasAutoScrolledRef.current ? "smooth" : "auto" });
+      hasAutoScrolledRef.current = true;
+    }
+
+    previousMessageCountRef.current = messages.length;
   }, [isLoadingMessages, messages]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Cargando conversacion...</p>
+        <p className="text-center text-muted-foreground">Cargando conversacion...</p>
       </div>
     );
   }
@@ -61,23 +62,23 @@ export default function ConversationDetailPage() {
   if (!conversation) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Conversacion no encontrada</p>
+        <p className="text-center text-muted-foreground">Conversacion no encontrada</p>
       </div>
     );
   }
 
   const isPotentialSale = conversation.isPotentialSale;
   const isSaleClosed = conversation.isClosedSale;
-  const isBotHandlingConversation = conversation.status === 'active';
+  const isBotHandlingConversation = conversation.status === "active";
 
   const handleClose = async () => {
     await closeConversation(conversation.id);
-    navigate('/');
+    navigate("/");
   };
 
   const handleDelete = async () => {
     await removeConversation(conversation.id);
-    navigate('/');
+    navigate("/");
   };
 
   const handleTakeConversation = async () => {
@@ -91,55 +92,39 @@ export default function ConversationDetailPage() {
   };
 
   return (
-    <div className="h-[100dvh] bg-background grid grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden">
+    <div className="grid h-[100dvh] w-full max-w-full grid-rows-[auto,minmax(0,1fr),auto] overflow-hidden bg-background">
       <header className="bg-card border-b border-border safe-top sticky top-0 z-30">
-        <div className="flex items-center gap-3 px-2 py-3">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-full hover:bg-secondary min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
+        <div className="grid w-full max-w-full grid-cols-[auto,minmax(0,1fr),auto] items-center gap-2 overflow-hidden px-2 py-2">
+          <button onClick={() => navigate("/")} className="p-2 rounded-full hover:bg-secondary min-w-[44px] min-h-[44px] flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
 
-          <button
-            onClick={() => setShowLead(true)}
-            className="flex items-center gap-3 flex-1 min-w-0"
-          >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-semibold">{(conversation.leadName || conversation.leadPhone || '?').charAt(0)}</span>
-            </div>
+          <button onClick={() => setShowLead(true)} className="flex min-w-0 flex-1 items-center">
             <div className="min-w-0 text-left">
               <h2 className="text-sm font-semibold text-foreground truncate">{conversation.leadName}</h2>
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs text-muted-foreground truncate">{conversation.leadPhone}</p>
-              </div>
+              <p className="text-xs text-muted-foreground truncate">{conversation.leadPhone}</p>
             </div>
           </button>
 
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <ConversationStateBadge
-              isPotentialSale={conversation.isPotentialSale}
-              isClosedSale={conversation.isClosedSale}
-            />
-            <StatusBadge status={conversation.status} />
+          <div className="flex min-w-0 shrink-0 items-center justify-end gap-1 overflow-hidden">
+            <div className="hidden items-center gap-1 sm:flex">
+              <ConversationStateBadge isPotentialSale={conversation.isPotentialSale} isClosedSale={conversation.isClosedSale} />
+              <StatusBadge status={conversation.status} />
+            </div>
 
-            {conversation.status === 'active' && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleTakeConversation}
-                disabled={isTakingConversation}
-                className="h-9"
-              >
-                Tomar conversacion
+            <div className="flex items-center gap-1 sm:hidden">
+              <ConversationStateBadge isPotentialSale={conversation.isPotentialSale} isClosedSale={conversation.isClosedSale} compact />
+              <StatusBadge status={conversation.status} />
+            </div>
+
+            {conversation.status === "active" && (
+              <Button type="button" variant="outline" size="sm" onClick={handleTakeConversation} disabled={isTakingConversation} className="h-8 px-2 text-xs sm:px-2">
+                <span className="hidden sm:inline">Tomar chat</span>
+                <span className="sm:hidden">Tomar chat</span>
               </Button>
             )}
 
-            <button
-              onClick={() => setShowLead(true)}
-              className="p-2 rounded-full hover:bg-secondary min-w-[44px] min-h-[44px] flex items-center justify-center"
-            >
+            <button onClick={() => setShowLead(true)} className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2 hover:bg-secondary sm:flex">
               <User className="w-5 h-5 text-muted-foreground" />
             </button>
 
@@ -150,35 +135,24 @@ export default function ConversationDetailPage() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {conversation.status !== 'closed' && (
+                {conversation.status !== "closed" && (
                   <DropdownMenuItem onClick={handleClose} className="gap-2">
                     <XCircle className="w-4 h-4" />
                     Cerrar conversacion
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="gap-2 text-destructive focus:text-destructive"
-                >
+                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="gap-2 text-destructive focus:text-destructive">
                   <Trash2 className="w-4 h-4" />
                   Eliminar conversacion
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => updateConversationSale(conversation.id, 'potential')}
-                  disabled={isPotentialSale}
-                  className="gap-2"
-                >
+                <DropdownMenuItem onClick={() => updateConversationSale(conversation.id, "potential")} disabled={isPotentialSale} className="gap-2">
                   <Flame className="w-4 h-4" />
-                  {isPotentialSale ? 'Ya es venta potencial' : 'Marcar como venta potencial'}
+                  {isPotentialSale ? "Ya es venta potencial" : "Marcar como venta potencial"}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => updateConversationSale(conversation.id, 'closed')}
-                  disabled={isSaleClosed}
-                  className="gap-2"
-                >
+                <DropdownMenuItem onClick={() => updateConversationSale(conversation.id, "closed")} disabled={isSaleClosed} className="gap-2">
                   <CircleDollarSign className="w-4 h-4" />
-                  {isSaleClosed ? 'Ya es venta cerrada' : 'Marcar como venta cerrada'}
+                  {isSaleClosed ? "Ya es venta cerrada" : "Marcar como venta cerrada"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -186,19 +160,13 @@ export default function ConversationDetailPage() {
         </div>
       </header>
 
-      <main className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 hide-scrollbar [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
+      <main className="hide-scrollbar min-h-0 w-full max-w-full overflow-x-hidden overflow-y-auto overscroll-contain px-2 py-3 [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
         {isLoadingMessages ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Cargando mensajes...
-          </div>
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">Cargando mensajes...</div>
         ) : messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            No hay mensajes en esta conversacion
-          </div>
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">No hay mensajes en esta conversacion</div>
         ) : (
-          messages.map((m) => (
-            <ChatBubble key={m.id} message={m} />
-          ))
+          messages.map((m) => <ChatBubble key={m.id} message={m} />)
         )}
         <div ref={bottomRef} />
       </main>
@@ -211,9 +179,7 @@ export default function ConversationDetailPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar conversacion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esto eliminara permanentemente la conversacion con {conversation.leadName}. Esta accion no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esto eliminara permanentemente la conversacion con {conversation.leadName}. Esta accion no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
