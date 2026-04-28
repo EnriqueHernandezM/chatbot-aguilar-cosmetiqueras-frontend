@@ -21,24 +21,26 @@ export default function ConversationDetailPage() {
   const [showLead, setShowLead] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isTakingConversation, setIsTakingConversation] = useState(false);
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasAutoScrolledRef = useRef(false);
+  const hasLoadedInitialMessagesRef = useRef(false);
   const previousMessageCountRef = useRef(0);
 
   useEffect(() => {
     hasAutoScrolledRef.current = false;
+    hasLoadedInitialMessagesRef.current = false;
     previousMessageCountRef.current = 0;
   }, [id]);
 
   useEffect(() => {
-    if (!isLoadingMessages && messages.length > 0 && !hasAutoScrolledRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
-      hasAutoScrolledRef.current = true;
-    }
-  }, [isLoadingMessages, messages]);
-
-  useEffect(() => {
     if (isLoadingMessages || messages.length === 0) {
+      previousMessageCountRef.current = messages.length;
+      return;
+    }
+
+    if (!hasLoadedInitialMessagesRef.current) {
+      hasLoadedInitialMessagesRef.current = true;
       previousMessageCountRef.current = messages.length;
       return;
     }
@@ -77,8 +79,15 @@ export default function ConversationDetailPage() {
   };
 
   const handleDelete = async () => {
-    await removeConversation(conversation.id);
-    navigate("/");
+    setIsDeletingConversation(true);
+
+    try {
+      await removeConversation(conversation.id);
+      setShowDeleteConfirm(false);
+      navigate("/");
+    } finally {
+      setIsDeletingConversation(false);
+    }
   };
 
   const handleTakeConversation = async () => {
@@ -182,9 +191,13 @@ export default function ConversationDetailPage() {
             <AlertDialogDescription>Esto eliminara permanentemente la conversacion con {conversation.leadName}. Esta accion no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Eliminar
+            <AlertDialogCancel disabled={isDeletingConversation}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeletingConversation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingConversation ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

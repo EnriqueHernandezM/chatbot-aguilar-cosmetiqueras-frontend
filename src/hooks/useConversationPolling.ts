@@ -34,7 +34,7 @@ function isSparseConversationUpdate(conversation: Conversation) {
 }
 
 function getConversationMessageKey(conversation: Conversation) {
-  return conversation.lastMessageId ?? conversation.lastMessageAt ?? conversation.updatedAt;
+  return conversation.lastMessageId ?? conversation.lastMessageAt ?? conversation.createdAt;
 }
 
 export function useConversationPolling({

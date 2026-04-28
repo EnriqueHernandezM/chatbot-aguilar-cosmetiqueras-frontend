@@ -42,9 +42,8 @@ function getBackendStatusFilter(statusFilter: InboxFilter): ConversationStatus |
 
 function getConversationActivityTime(conversation: Conversation) {
   const lastMessageTime = new Date(conversation.lastMessageAt).getTime();
-  const updatedTime = new Date(conversation.updatedAt).getTime();
   const createdTime = new Date(conversation.createdAt).getTime();
-  const candidateTimes = [lastMessageTime, updatedTime, createdTime].filter(
+  const candidateTimes = [lastMessageTime, createdTime].filter(
     (time) => Number.isFinite(time) && time > 0,
   );
 
