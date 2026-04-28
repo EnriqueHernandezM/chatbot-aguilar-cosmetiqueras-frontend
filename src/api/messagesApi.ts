@@ -8,7 +8,7 @@ interface MessageApiResponse {
   waMessageId?: string;
   from?: string;
   type?: string;
-  content?: string;
+  content?: string | string[];
   imageUrl?: string;
   internalNote?: boolean;
   createdAt?: string;
@@ -60,9 +60,13 @@ function normalizeMessageType(type?: string): MessageType {
   return "text";
 }
 
-function normalizeImageUrls(type: MessageType, content?: string): string[] | undefined {
+function normalizeImageUrls(type: MessageType, content?: string | string[]): string[] | undefined {
   if (type !== "image" || !content) {
     return undefined;
+  }
+
+  if (Array.isArray(content)) {
+    return content.filter((value): value is string => typeof value === "string" && value.length > 0);
   }
 
   try {
@@ -78,6 +82,10 @@ function normalizeImageUrls(type: MessageType, content?: string): string[] | und
   }
 
   return undefined;
+}
+
+function normalizeMessageContent(content?: string | string[]): string {
+  return typeof content === "string" ? content : "";
 }
 
 function getSenderName(sender: MessageSender, conversation?: Conversation): string {
@@ -104,7 +112,7 @@ function mapMessage(apiMessage: MessageApiResponse, conversation?: Conversation)
     type,
     sender,
     senderName: getSenderName(sender, conversation),
-    content: imageUrls ? "" : typeof apiMessage.content === "string" ? apiMessage.content : "",
+    content: imageUrls ? "" : normalizeMessageContent(apiMessage.content),
     imageUrl: imageUrls?.[0] ?? (typeof apiMessage.imageUrl === "string" ? apiMessage.imageUrl : undefined),
     imageUrls,
     internalNote: apiMessage.internalNote === true,

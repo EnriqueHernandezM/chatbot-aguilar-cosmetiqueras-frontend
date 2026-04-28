@@ -41,6 +41,8 @@ export default function ConversationDetailPage() {
 
     if (!hasLoadedInitialMessagesRef.current) {
       hasLoadedInitialMessagesRef.current = true;
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      hasAutoScrolledRef.current = true;
       previousMessageCountRef.current = messages.length;
       return;
     }
