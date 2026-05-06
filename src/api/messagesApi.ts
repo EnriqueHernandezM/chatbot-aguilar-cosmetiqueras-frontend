@@ -60,20 +60,22 @@ function normalizeMessageType(type?: string): MessageType {
   return "text";
 }
 
-function normalizeImageUrls(type: MessageType, content?: string | string[]): string[] | undefined {
-  if (type !== "image" || !content) {
+function extractImageUrls(content?: string | string[]): string[] | undefined {
+  if (!content) {
     return undefined;
   }
 
   if (Array.isArray(content)) {
-    return content.filter((value): value is string => typeof value === "string" && value.length > 0);
+    const urls = content.filter((value): value is string => typeof value === "string" && value.length > 0);
+    return urls.length ? urls : undefined;
   }
 
   try {
     const parsed = JSON.parse(content) as unknown;
 
     if (Array.isArray(parsed)) {
-      return parsed.filter((value): value is string => typeof value === "string" && value.length > 0);
+      const urls = parsed.filter((value): value is string => typeof value === "string" && value.length > 0);
+      return urls.length ? urls : undefined;
     }
   } catch {
     if (content.startsWith("http://") || content.startsWith("https://")) {
@@ -82,6 +84,14 @@ function normalizeImageUrls(type: MessageType, content?: string | string[]): str
   }
 
   return undefined;
+}
+
+function normalizeImageUrls(type: MessageType, content?: string | string[]): string[] | undefined {
+  if (type !== "image") {
+    return undefined;
+  }
+
+  return extractImageUrls(content);
 }
 
 function normalizeMessageContent(content?: string | string[]): string {

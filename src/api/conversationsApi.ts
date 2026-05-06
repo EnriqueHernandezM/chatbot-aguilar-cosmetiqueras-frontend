@@ -201,6 +201,10 @@ function getLastMessageContent(lastMessage: ConversationApiResponse["lastMessage
 
   const lastMessageObject = getLastMessageObject(lastMessage);
 
+  if (lastMessageObject?.type === "image") {
+    return "Imagen";
+  }
+
   if (lastMessageObject && typeof lastMessageObject.content === "string" && lastMessageObject.content.trim()) {
     return lastMessageObject.content;
   }
