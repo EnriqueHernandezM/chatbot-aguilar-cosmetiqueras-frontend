@@ -50,9 +50,13 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
         chatId: conversationId,
         url: conversationId ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}` : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
       },
-      tag: conversationId ? `conversation-${conversationId}-${Date.now()}` : undefined,
-      renotify: true,
+      // tag: conversationId ? `conversation-${conversationId}-${Date.now()}` : undefined,
+      // renotify: true,
+      // requireInteraction: false,
+      tag: undefined,
+      renotify: false,
       requireInteraction: false,
+      silent: false, // Asegura que no sea silenciosa
     },
   };
 }
