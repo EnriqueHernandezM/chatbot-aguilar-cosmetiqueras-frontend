@@ -52,6 +52,7 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
       },
       tag: conversationId ? `conversation-${conversationId}` : undefined,
       renotify: true,
+      requireInteraction: false,
     },
   };
 }
