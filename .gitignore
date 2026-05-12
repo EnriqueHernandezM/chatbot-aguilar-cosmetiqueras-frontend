@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*git add.
 
-
+.env
 .env.production
 .env.development
 
