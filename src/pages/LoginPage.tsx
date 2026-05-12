@@ -45,11 +45,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-              {error}
-            </div>
-          )}
+          {error && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">{error}</div>}
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">Correo electronico</label>
@@ -64,7 +60,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">Contrasena</label>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Contraseña</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -74,21 +70,13 @@ export default function LoginPage() {
                 placeholder="********"
                 autoComplete="current-password"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
-              >
+              <button type="button" onClick={() => setShowPassword((prev) => !prev)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 min-h-[48px]"
-          >
+          <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 min-h-[48px]">
             {loading ? "Iniciando sesion..." : "Iniciar sesion"}
           </button>
         </form>

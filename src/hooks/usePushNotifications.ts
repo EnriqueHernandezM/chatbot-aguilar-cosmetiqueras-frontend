@@ -53,8 +53,8 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
       // tag: conversationId ? `conversation-${conversationId}-${Date.now()}` : undefined,
       // renotify: true,
       // requireInteraction: false,
-      tag: undefined,
-      renotify: false,
+      tag: conversationId ? `msg-${conversationId}-${Date.now()}-${Math.random().toString(36).slice(2)}` : undefined,
+      renotify: true, // Solo funciona si el tag cambia entre notifs
       requireInteraction: false,
       silent: false, // Asegura que no sea silenciosa
     },
