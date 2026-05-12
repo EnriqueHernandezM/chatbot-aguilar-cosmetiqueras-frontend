@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 importScripts("https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging-compat.js");
 
@@ -46,7 +45,10 @@ function buildNotificationOptions({ preview, handledBy, conversationId, url }) {
       conversationId,
       chatId: conversationId,
     },
-    tag: conversationId ? `conversation-${conversationId}` : undefined,
+    // Tag único por mensaje = siempre suena
+    tag: `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    renotify: true,
+    silent: false,
   };
 }
 
@@ -54,11 +56,7 @@ function shouldSkipDuplicateNotification({ title, preview, conversationId }) {
   const fingerprint = [title, preview, conversationId].filter(Boolean).join("|");
   const now = Date.now();
 
-  if (
-    fingerprint &&
-    fingerprint === lastNotificationFingerprint &&
-    now - lastNotificationTimestamp < RECENT_NOTIFICATION_WINDOW_MS
-  ) {
+  if (fingerprint && fingerprint === lastNotificationFingerprint && now - lastNotificationTimestamp < RECENT_NOTIFICATION_WINDOW_MS) {
     return true;
   }
 
@@ -74,10 +72,7 @@ function showAppNotification({ title, preview, handledBy, conversationId }) {
 
   const url = buildNotificationUrl(conversationId);
 
-  return self.registration.showNotification(
-    title,
-    buildNotificationOptions({ title, preview, handledBy, conversationId, url }),
-  );
+  return self.registration.showNotification(title, buildNotificationOptions({ title, preview, handledBy, conversationId, url }));
 }
 
 function normalizeNotificationPayload(data = {}, notification = {}) {
@@ -97,24 +92,6 @@ function normalizeNotificationPayload(data = {}, notification = {}) {
 messaging.onBackgroundMessage((payload) => {
   const normalizedPayload = normalizeNotificationPayload(payload?.data ?? {}, payload?.notification ?? {});
   void showAppNotification(normalizedPayload);
-});
-
-self.addEventListener("push", (event) => {
-  if (!event.data) {
-    return;
-  }
-
-  let payload;
-
-  try {
-    payload = event.data.json();
-  } catch {
-    return;
-  }
-
-  const normalizedPayload = normalizeNotificationPayload(payload?.data ?? payload ?? {}, payload?.notification ?? {});
-
-  event.waitUntil(showAppNotification(normalizedPayload));
 });
 
 self.addEventListener("notificationclick", (event) => {
