@@ -21,11 +21,7 @@ function getDeviceName() {
     return "Web";
   }
 
-  return navigator.userAgent.includes("Android")
-    ? "Android Web"
-    : navigator.userAgent.includes("Windows")
-      ? "Windows Web"
-      : "Web";
+  return navigator.userAgent.includes("Android") ? "Android Web" : navigator.userAgent.includes("Windows") ? "Windows Web" : "Web";
 }
 
 function getHandledByLabel(value?: string) {
@@ -52,11 +48,10 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
       data: {
         conversationId,
         chatId: conversationId,
-        url: conversationId
-          ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}`
-          : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
+        url: conversationId ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}` : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
       },
       tag: conversationId ? `conversation-${conversationId}` : undefined,
+      renotify: true,
     },
   };
 }

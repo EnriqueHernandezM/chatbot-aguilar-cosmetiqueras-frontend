@@ -80,7 +80,13 @@ function normalizeConversationStatus(status?: string): ConversationStatus {
 }
 
 function normalizeConversationOrigin(origin?: string): Conversation["origin"] {
-  return origin === "nacional" ? "nacional" : "monterrey";
+  const normalizedOrigin = origin?.trim().toLowerCase();
+
+  if (normalizedOrigin === "nacional" || normalizedOrigin === "national") {
+    return "nacional";
+  }
+
+  return "monterrey";
 }
 
 function formatPhoneNumber(rawPhone: string): string {
