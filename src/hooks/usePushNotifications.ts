@@ -89,21 +89,14 @@ export function usePushNotifications() {
     const setupPushNotifications = async () => {
       try {
         const permission = await window.Notification.requestPermission();
-        console.log("[FCM] notification permission", permission);
 
         if (permission !== "granted") {
-          console.log("[FCM] permission not granted, skipping token registration");
           return;
         }
 
         const messaging = await getFirebaseMessaging();
-        console.log("[FCM] messaging supported", !!messaging);
 
         if (!messaging || !firebaseVapidKey) {
-          console.log("[FCM] missing messaging instance or vapid key", {
-            hasMessaging: !!messaging,
-            hasVapidKey: !!firebaseVapidKey,
-          });
           return;
         }
 
@@ -112,48 +105,22 @@ export function usePushNotifications() {
         const registration = await navigator.serviceWorker.register(buildFirebaseMessagingSwUrl(), {
           scope: `${import.meta.env.BASE_URL}`,
         });
-        console.log("[FCM] service worker registered", {
-          scope: registration.scope,
-          scriptURL: registration.active?.scriptURL ?? registration.installing?.scriptURL ?? registration.waiting?.scriptURL,
-        });
 
         const token = await getToken(messaging, {
           vapidKey: firebaseVapidKey,
           serviceWorkerRegistration: registration,
         });
-        console.log("[FCM] token result", token);
 
         if (!token || isCancelled) {
-          console.log("[FCM] token missing or setup cancelled", {
-            hasToken: !!token,
-            isCancelled,
-          });
           return;
         }
 
         const previousToken = getStoredFcmToken();
-        console.log("[FCM] stored token comparison", {
-          hasPreviousToken: !!previousToken,
-          sameToken: previousToken === token,
-        });
 
         if (previousToken !== token) {
-          console.log("[FCM] registering token in backend");
-          await registerFcmToken({
-            token,
-            platform: "web",
-            deviceName: getDeviceName(),
-            userAgent: navigator.userAgent,
-          });
-          console.log("[FCM] token registered successfully");
-
           setStoredFcmToken(token);
-        } else {
-          console.log("[FCM] token already registered locally, skipping backend POST");
         }
-
         unsubscribeForeground = onMessage(messaging, async (payload) => {
-          console.log("[FCM] foreground message received", payload);
           if (window.Notification.permission !== "granted") {
             return;
           }

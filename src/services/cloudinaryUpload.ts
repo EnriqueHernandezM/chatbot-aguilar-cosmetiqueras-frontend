@@ -25,8 +25,6 @@ async function uploadSingleImage(file: File): Promise<string> {
   });
 
   const data = (await response.json().catch(() => null)) as { secure_url?: string; error?: { message?: string } } | null;
-  console.log(data);
-  console.log("||?>?>><><><><");
 
   if (!response.ok || !data?.secure_url) {
     const errorMessage = data?.error?.message || `No se pudo subir la imagen ${file.name} a Cloudinary`;

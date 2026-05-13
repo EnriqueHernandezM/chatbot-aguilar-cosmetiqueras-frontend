@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/modules/auth/useAuth";
 import { useConversationPolling } from "@/hooks/useConversationPolling";
 
+const OPEN_CONVERSATION_POLLING_INTERVAL_MS = 5000;
+
 function getStoredOrigin(): OriginCategory {
   try {
     const value = localStorage.getItem("originFilter");
@@ -343,9 +345,19 @@ export function useMessages(conversationId: string, conversation?: Conversation)
     }
 
     let isMounted = true;
+    let intervalId: number | null = null;
+    let isPolling = false;
 
-    const loadMessages = async () => {
-      setIsLoading(true);
+    const syncMessages = async (showLoadingState: boolean) => {
+      if (isPolling) {
+        return;
+      }
+
+      isPolling = true;
+
+      if (showLoadingState) {
+        setIsLoading(true);
+      }
 
       try {
         const data = await getConversationMessages(conversationId, conversation);
@@ -354,22 +366,31 @@ export function useMessages(conversationId: string, conversation?: Conversation)
           setMessages(data);
         }
       } catch (error) {
-        if (isMounted) {
+        if (isMounted && showLoadingState) {
           setMessages([]);
           const message = error instanceof Error ? error.message : "No se pudieron cargar los mensajes";
           toast.error(message);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && showLoadingState) {
           setIsLoading(false);
         }
+
+        isPolling = false;
       }
     };
 
-    void loadMessages();
+    void syncMessages(true);
+    intervalId = window.setInterval(() => {
+      void syncMessages(false);
+    }, OPEN_CONVERSATION_POLLING_INTERVAL_MS);
 
     return () => {
       isMounted = false;
+
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
     };
   }, [conversationId, conversation]);
 
