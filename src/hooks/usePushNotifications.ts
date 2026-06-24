@@ -79,6 +79,7 @@ export function usePushNotifications() {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
+    console.log("[FCM] enabled?", FIREBASE_MESSAGING_ENABLED, "auth?", isAuthenticated);
     if (!isAuthenticated || !FIREBASE_MESSAGING_ENABLED || typeof window === "undefined") {
       return;
     }
