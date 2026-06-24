@@ -21,11 +21,7 @@ function getDeviceName() {
     return "Web";
   }
 
-  return navigator.userAgent.includes("Android")
-    ? "Android Web"
-    : navigator.userAgent.includes("Windows")
-      ? "Windows Web"
-      : "Web";
+  return navigator.userAgent.includes("Android") ? "Android Web" : navigator.userAgent.includes("Windows") ? "Windows Web" : "Web";
 }
 
 function getHandledByLabel(value?: string) {
@@ -52,11 +48,12 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
       data: {
         conversationId,
         chatId: conversationId,
-        url: conversationId
-          ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}`
-          : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
+        url: conversationId ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}` : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
       },
-      tag: conversationId ? `conversation-${conversationId}` : undefined,
+      tag: conversationId ? `msg-${conversationId}-${Date.now()}-${Math.random().toString(36).slice(2)}` : undefined,
+      renotify: true,
+      requireInteraction: false,
+      silent: false,
     },
   };
 }
@@ -97,13 +94,8 @@ export function usePushNotifications() {
         }
 
         const messaging = await getFirebaseMessaging();
-        console.log("[FCM] messaging supported", !!messaging);
 
         if (!messaging || !firebaseVapidKey) {
-          console.log("[FCM] missing messaging instance or vapid key", {
-            hasMessaging: !!messaging,
-            hasVapidKey: !!firebaseVapidKey,
-          });
           return;
         }
 
@@ -112,48 +104,29 @@ export function usePushNotifications() {
         const registration = await navigator.serviceWorker.register(buildFirebaseMessagingSwUrl(), {
           scope: `${import.meta.env.BASE_URL}`,
         });
-        console.log("[FCM] service worker registered", {
-          scope: registration.scope,
-          scriptURL: registration.active?.scriptURL ?? registration.installing?.scriptURL ?? registration.waiting?.scriptURL,
-        });
 
         const token = await getToken(messaging, {
           vapidKey: firebaseVapidKey,
           serviceWorkerRegistration: registration,
         });
-        console.log("[FCM] token result", token);
 
         if (!token || isCancelled) {
-          console.log("[FCM] token missing or setup cancelled", {
-            hasToken: !!token,
-            isCancelled,
-          });
           return;
         }
 
         const previousToken = getStoredFcmToken();
-        console.log("[FCM] stored token comparison", {
-          hasPreviousToken: !!previousToken,
-          sameToken: previousToken === token,
-        });
 
         if (previousToken !== token) {
-          console.log("[FCM] registering token in backend");
           await registerFcmToken({
             token,
             platform: "web",
             deviceName: getDeviceName(),
             userAgent: navigator.userAgent,
           });
-          console.log("[FCM] token registered successfully");
-
           setStoredFcmToken(token);
-        } else {
-          console.log("[FCM] token already registered locally, skipping backend POST");
         }
 
         unsubscribeForeground = onMessage(messaging, async (payload) => {
-          console.log("[FCM] foreground message received", payload);
           if (window.Notification.permission !== "granted") {
             return;
           }
