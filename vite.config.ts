@@ -21,8 +21,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
-      filename: "manifest.webmanifest",
+      injectRegister: null,
       includeAssets: ["pwa-72x72.png", "pwa-192x192.png", "pwa-512x512.png", "mask-icon.svg"],
       devOptions: {
         enabled: true,
