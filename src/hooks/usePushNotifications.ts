@@ -89,48 +89,32 @@ export function usePushNotifications() {
 
     const setupPushNotifications = async () => {
       try {
+        console.log("[FCM] requesting permission...");
         const permission = await window.Notification.requestPermission();
+        console.log("[FCM] permission:", permission);
 
-        if (permission !== "granted") {
-          return;
-        }
+        if (permission !== "granted") return;
 
+        console.log("[FCM] getting messaging...");
         const messaging = await getFirebaseMessaging();
+        console.log("[FCM] messaging:", !!messaging, "vapidKey:", !!firebaseVapidKey);
 
-        if (!messaging || !firebaseVapidKey) {
-          return;
-        }
+        if (!messaging || !firebaseVapidKey) return;
 
-        getFirebaseApp();
+        const swUrl = buildFirebaseMessagingSwUrl();
+        console.log("[FCM] registering SW:", swUrl);
 
-        const registration = await navigator.serviceWorker.register(buildFirebaseMessagingSwUrl(), {
+        const registration = await navigator.serviceWorker.register(swUrl, {
           scope: `${import.meta.env.BASE_URL}`,
         });
+        console.log("[FCM] SW registered:", registration.scope);
 
+        console.log("[FCM] getting token...");
         const token = await getToken(messaging, {
           vapidKey: firebaseVapidKey,
           serviceWorkerRegistration: registration,
         });
-
-        if (!token || isCancelled) {
-          return;
-        }
-
-        const previousToken = getStoredFcmToken();
-
-        if (previousToken !== token) {
-          setStoredFcmToken(token);
-        }
-        unsubscribeForeground = onMessage(messaging, async (payload) => {
-          if (window.Notification.permission !== "granted") {
-            return;
-          }
-
-          const notificationData = payload.data as ForegroundNotificationData | undefined;
-          const { title, options } = buildNotificationOptions(notificationData ?? {});
-          const readyRegistration = await navigator.serviceWorker.ready;
-          await readyRegistration.showNotification(title, options);
-        });
+        console.log("[FCM] token:", token);
       } catch (error) {
         console.error("[FCM] setup failed", error);
       }
