@@ -50,13 +50,10 @@ function buildNotificationOptions(data: ForegroundNotificationData) {
         chatId: conversationId,
         url: conversationId ? `${window.location.origin}${import.meta.env.BASE_URL}#/conversations/${conversationId}` : `${window.location.origin}${import.meta.env.BASE_URL}#/`,
       },
-      // tag: conversationId ? `conversation-${conversationId}-${Date.now()}` : undefined,
-      // renotify: true,
-      // requireInteraction: false,
       tag: conversationId ? `msg-${conversationId}-${Date.now()}-${Math.random().toString(36).slice(2)}` : undefined,
-      renotify: true, // Solo funciona si el tag cambia entre notifs
+      renotify: true,
       requireInteraction: false,
-      silent: false, // Asegura que no sea silenciosa
+      silent: false,
     },
   };
 }
@@ -79,7 +76,6 @@ export function usePushNotifications() {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    console.log("[FCM] enabled?", FIREBASE_MESSAGING_ENABLED, "auth?", isAuthenticated);
     if (!isAuthenticated || !FIREBASE_MESSAGING_ENABLED || typeof window === "undefined") {
       return;
     }
@@ -89,32 +85,55 @@ export function usePushNotifications() {
 
     const setupPushNotifications = async () => {
       try {
-        console.log("[FCM] requesting permission...");
         const permission = await window.Notification.requestPermission();
-        console.log("[FCM] permission:", permission);
 
-        if (permission !== "granted") return;
+        if (permission !== "granted") {
+          return;
+        }
 
-        console.log("[FCM] getting messaging...");
         const messaging = await getFirebaseMessaging();
-        console.log("[FCM] messaging:", !!messaging, "vapidKey:", !!firebaseVapidKey);
 
-        if (!messaging || !firebaseVapidKey) return;
+        if (!messaging || !firebaseVapidKey) {
+          return;
+        }
 
-        const swUrl = buildFirebaseMessagingSwUrl();
-        console.log("[FCM] registering SW:", swUrl);
+        getFirebaseApp();
 
-        const registration = await navigator.serviceWorker.register(swUrl, {
+        const registration = await navigator.serviceWorker.register(buildFirebaseMessagingSwUrl(), {
           scope: `${import.meta.env.BASE_URL}`,
         });
-        console.log("[FCM] SW registered:", registration.scope);
 
-        console.log("[FCM] getting token...");
         const token = await getToken(messaging, {
           vapidKey: firebaseVapidKey,
           serviceWorkerRegistration: registration,
         });
-        console.log("[FCM] token:", token);
+
+        if (!token || isCancelled) {
+          return;
+        }
+
+        const previousToken = getStoredFcmToken();
+
+        if (previousToken !== token) {
+          await registerFcmToken({
+            token,
+            platform: "web",
+            deviceName: getDeviceName(),
+            userAgent: navigator.userAgent,
+          });
+          setStoredFcmToken(token);
+        }
+
+        unsubscribeForeground = onMessage(messaging, async (payload) => {
+          if (window.Notification.permission !== "granted") {
+            return;
+          }
+
+          const notificationData = payload.data as ForegroundNotificationData | undefined;
+          const { title, options } = buildNotificationOptions(notificationData ?? {});
+          const readyRegistration = await navigator.serviceWorker.ready;
+          await readyRegistration.showNotification(title, options);
+        });
       } catch (error) {
         console.error("[FCM] setup failed", error);
       }
