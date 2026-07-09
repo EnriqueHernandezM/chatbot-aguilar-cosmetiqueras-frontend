@@ -19,9 +19,12 @@ function formatMessageTime(dateStr: string) {
 
 export function ConversationItem({ conversation, onClick, isActive }: ConversationItemProps) {
   const time = formatMessageTime(conversation.lastMessageAt);
-  const hasUnread = conversation.unreadCount > 0;
-  const displayName = conversation.leadName || conversation.leadPhone;
   const isBotHandlingConversation = conversation.status === "active";
+  const isWaitingHuman = conversation.status === "waiting_human";
+  // La logica de visto/no visto (sombreado + contador) solo aplica a conversaciones
+  // en espera de un humano. El bot (active) ignora unreadCount por completo.
+  const hasUnread = isWaitingHuman && conversation.unreadCount > 0;
+  const displayName = conversation.leadName || conversation.leadPhone;
   const hasRecentUpdate = conversation.hasRecentUpdate === true;
   const assignedAgentName = conversation.assignedTo?.name?.trim();
 

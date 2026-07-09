@@ -91,6 +91,14 @@ export interface QuickReplyTemplate {
   order?: number;
 }
 
+// Imagen guardada en la galeria privada del tenant (GET /gallery).
+export interface GalleryItem {
+  id: string;
+  url: string;
+  title?: string;
+  caption?: string;
+}
+
 export interface AuthCredentials {
   email: string;
   password: string;

@@ -23,6 +23,7 @@ interface SendMessagePayload {
   type: MessageType;
   waMessageId: string;
   internalNote: boolean;
+  source?: "device" | "gallery";
 }
 
 async function readJson<T>(response: Response): Promise<T | null> {
