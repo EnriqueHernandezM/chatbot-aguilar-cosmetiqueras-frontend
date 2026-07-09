@@ -20,10 +20,11 @@ interface ConversationApiResponse {
   waId?: string;
   leadId?: string;
   leadName?: string;
+  nickname?: string | null;
   leadPhone?: string;
   status?: ConversationStatus;
   currentState?: string;
-  origin?: Conversation["origin"];
+  origin?: string;
   lastMessageId?: string;
   lastMessageSender?: string;
   lastMessageFrom?: string;
@@ -37,10 +38,7 @@ interface ConversationApiResponse {
         role?: string;
         active?: boolean;
       };
-  lastMessage?:
-    | string
-    | ConversationLastMessageApiResponse
-    | null;
+  lastMessage?: string | ConversationLastMessageApiResponse | null;
   lastMessageAt?: string;
   lastReadAt?: string | null;
   lockUntil?: string | null;
@@ -106,8 +104,11 @@ function getDisplayName(apiConversation: ConversationApiResponse, waId: string):
     return apiConversation.leadName.trim();
   }
 
-  const fallbackPhone = getDisplayPhone(apiConversation, waId);
-  return fallbackPhone || "Contacto sin nombre";
+  if (typeof apiConversation.nickname === "string" && apiConversation.nickname.trim()) {
+    return apiConversation.nickname.trim();
+  }
+
+  return getDisplayPhone(apiConversation, waId);
 }
 
 function getDisplayPhone(apiConversation: ConversationApiResponse, waId: string): string {
@@ -341,10 +342,7 @@ export async function markConversationRead(conversationId: string): Promise<void
   await assertOk(response, "No se pudo marcar la conversacion como leida");
 }
 
-export async function updateConversationSale(
-  conversationId: string,
-  payload: { isPotentialSale: boolean; isClosedSale: boolean },
-): Promise<void> {
+export async function updateConversationSale(conversationId: string, payload: { isPotentialSale: boolean; isClosedSale: boolean }): Promise<void> {
   const response = await apiFetch(`/conversations/${conversationId}/sale`, {
     method: "PATCH",
     includeJsonContentType: true,

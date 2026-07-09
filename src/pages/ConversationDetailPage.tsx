@@ -16,7 +16,7 @@ export default function ConversationDetailPage() {
   const navigate = useNavigate();
   const { allConversations, isLoading, closeConversation, removeConversation, takeConversation, updateConversationSale } = useConversations();
   const conversation = allConversations.find((c) => c.id === id);
-  const { messages, isLoading: isLoadingMessages, isSending, sendMessage } = useMessages(id || "", conversation);
+  const { messages, isLoading: isLoadingMessages, isSending, sendMessage, sendGalleryImage } = useMessages(id || "", conversation);
   const lead = useLead(conversation);
   const [showLead, setShowLead] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -182,7 +182,7 @@ export default function ConversationDetailPage() {
         <div ref={bottomRef} />
       </main>
 
-      <ChatInput onSend={sendMessage} isSending={isSending} disabled={isBotHandlingConversation} />
+      <ChatInput onSend={sendMessage} onSendGalleryImage={sendGalleryImage} isSending={isSending} disabled={isBotHandlingConversation} />
 
       {showLead && <LeadPanel lead={lead} onClose={() => setShowLead(false)} />}
 

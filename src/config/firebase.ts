@@ -23,6 +23,9 @@ function assertFirebaseConfig() {
 }
 
 export function getFirebaseApp() {
+  console.log(import.meta.env.VITE_FIREBASE_API_KEY);
+  console.log(import.meta.env.VITE_FIREBASE_PROJECT_ID);
+  console.log(import.meta.env.VITE_FIREBASE_VAPID_KEY);
   assertFirebaseConfig();
   return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 }

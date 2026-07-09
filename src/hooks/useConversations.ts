@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Conversation, ConversationStatus, Lead, Message } from "@/modules/types";
+import { Conversation, ConversationStatus, GalleryItem, Lead, Message } from "@/modules/types";
 import { InboxFilter } from "@/components/StatusFilter";
 import { FlowCategory, flowStateMapping } from "@/components/FlowFilter";
 import { OriginCategory } from "@/components/OriginFilter";
@@ -25,6 +25,26 @@ function getStoredOrigin(): OriginCategory {
   try {
     const value = localStorage.getItem("originFilter");
     if (value === "monterrey" || value === "nacional") {
+      return value;
+    }
+  } catch {
+    return "all";
+  }
+
+  return "all";
+}
+
+function getStoredStatusFilter(): InboxFilter {
+  try {
+    const value = localStorage.getItem("statusFilter");
+    if (
+      value === "all" ||
+      value === "active" ||
+      value === "waiting_human" ||
+      value === "closed" ||
+      value === "potential_sale" ||
+      value === "sale_closed"
+    ) {
       return value;
     }
   } catch {
@@ -60,7 +80,7 @@ export function useConversations(options?: { enablePolling?: boolean }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<InboxFilter>("all");
+  const [statusFilter, setStatusFilterState] = useState<InboxFilter>(getStoredStatusFilter);
   const [flowFilter, setFlowFilter] = useState<FlowCategory>("all");
   const [originFilter, setOriginFilterState] = useState<OriginCategory>(getStoredOrigin);
   const backendStatusFilter = getBackendStatusFilter(statusFilter);
@@ -97,6 +117,16 @@ export function useConversations(options?: { enablePolling?: boolean }) {
     setConversations,
     currentUserId: user?.id,
   });
+
+  const setStatusFilter = useCallback((value: InboxFilter) => {
+    setStatusFilterState(value);
+
+    try {
+      localStorage.setItem("statusFilter", value);
+    } catch {
+      // Ignore localStorage failures and keep UI state in memory.
+    }
+  }, []);
 
   const setOriginFilter = useCallback((value: OriginCategory) => {
     setOriginFilterState(value);
@@ -230,20 +260,14 @@ export function useConversations(options?: { enablePolling?: boolean }) {
   }, [conversations, user]);
 
   const markRead = useCallback(async (id: string) => {
-    const previousConversations = conversations;
-
-    setConversations((prev) =>
-      prev.map((conversation) => (conversation.id === id ? { ...conversation, unreadCount: 0 } : conversation)),
-    );
-
     try {
       await markConversationRead(id);
+      await loadConversations();
     } catch (error) {
-      setConversations(previousConversations);
       const message = error instanceof Error ? error.message : "No se pudo marcar la conversacion como leida";
       toast.error(message);
     }
-  }, [conversations]);
+  }, [loadConversations]);
 
   const closeConversation = useCallback(async (id: string) => {
     const previousConversations = conversations;
@@ -426,6 +450,7 @@ export function useMessages(conversationId: string, conversation?: Conversation)
           type: type === "note" ? "text" : type,
           waMessageId: "",
           internalNote: type === "note",
+          source: type === "image" && files?.length ? "device" : undefined,
         },
         conversation,
       );
@@ -452,7 +477,67 @@ export function useMessages(conversationId: string, conversation?: Conversation)
     }
   };
 
-  return { messages, isLoading, isSending, sendMessage };
+  const sendGalleryImage = async (item: GalleryItem, caption?: string) => {
+    const now = new Date().toISOString();
+    const trimmedCaption = caption?.trim();
+    const optimisticMessage: Message = {
+      id: `m_${Date.now()}`,
+      conversationId,
+      waMessageId: undefined,
+      type: "image",
+      sender: "agent",
+      senderName: "Tu",
+      content: trimmedCaption ?? "",
+      imageUrl: item.url,
+      imageUrls: [item.url],
+      internalNote: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setIsSending(true);
+
+    try {
+      const createdMessage = await sendConversationMessage(
+        {
+          conversationId,
+          from: "agent",
+          content: item.url,
+          type: "image",
+          waMessageId: "",
+          internalNote: false,
+          source: "gallery",
+        },
+        conversation,
+      );
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === optimisticMessage.id
+            ? {
+                ...createdMessage,
+                imageUrl: createdMessage.imageUrl ?? item.url,
+                imageUrls: createdMessage.imageUrls ?? [item.url],
+              }
+            : message,
+        ),
+      );
+
+      if (trimmedCaption) {
+        await sendMessage(trimmedCaption, "text");
+      }
+    } catch (error) {
+      setMessages((prev) => prev.filter((message) => message.id !== optimisticMessage.id));
+      const message = error instanceof Error ? error.message : "No se pudo enviar la imagen de la galeria";
+      toast.error(message);
+      throw error;
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return { messages, isLoading, isSending, sendMessage, sendGalleryImage };
 }
 
 export function useLead(conversation?: Conversation): Lead | undefined {

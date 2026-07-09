@@ -33,11 +33,7 @@ export function QuickReplySheet({ open, onClose, onSelect }: QuickReplySheetProp
               <Zap className="h-4 w-4 text-primary" />
               Respuestas rapidas
             </h3>
-            <button
-              onClick={onClose}
-              className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 hover:bg-secondary"
-              type="button"
-            >
+            <button onClick={onClose} className="flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full p-2 hover:bg-secondary" type="button">
               <X className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
@@ -51,9 +47,7 @@ export function QuickReplySheet({ open, onClose, onSelect }: QuickReplySheetProp
           ) : (
             Object.entries(grouped).map(([category, items]) => (
               <div key={category} className="mb-4 last:mb-0">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {category}
-                </span>
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{category}</span>
                 <div className="space-y-1.5">
                   {items.map((template) => (
                     <button
@@ -66,9 +60,7 @@ export function QuickReplySheet({ open, onClose, onSelect }: QuickReplySheetProp
                       type="button"
                     >
                       <span className="block text-sm font-medium text-foreground">{template.title}</span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-                        {template.content}
-                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">{template.content}</span>
                     </button>
                   ))}
                 </div>
