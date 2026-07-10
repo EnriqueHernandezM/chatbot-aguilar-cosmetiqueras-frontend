@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export default function ConversationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { allConversations, isLoading, closeConversation, removeConversation, takeConversation, updateConversationSale } = useConversations();
+  const { allConversations, isLoading, closeConversation, removeConversation, takeConversation, updateConversationSale, updateNickname } = useConversations();
   const conversation = allConversations.find((c) => c.id === id);
   const { messages, isLoading: isLoadingMessages, isSending, sendMessage, sendGalleryImage } = useMessages(id || "", conversation);
   const lead = useLead(conversation);
@@ -184,7 +184,7 @@ export default function ConversationDetailPage() {
 
       <ChatInput onSend={sendMessage} onSendGalleryImage={sendGalleryImage} isSending={isSending} disabled={isBotHandlingConversation} />
 
-      {showLead && <LeadPanel lead={lead} onClose={() => setShowLead(false)} />}
+      {showLead && <LeadPanel lead={lead} onClose={() => setShowLead(false)} onSaveNickname={(nickname) => updateNickname(conversation.id, nickname)} />}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
@@ -194,11 +194,7 @@ export default function ConversationDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeletingConversation}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeletingConversation}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} disabled={isDeletingConversation} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isDeletingConversation ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>

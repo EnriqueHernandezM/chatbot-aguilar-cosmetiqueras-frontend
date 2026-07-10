@@ -10,6 +10,7 @@ import {
   getConversations,
   markConversationRead,
   takeConversation as apiTakeConversation,
+  updateConversationNickname as apiUpdateConversationNickname,
   updateConversationSale as apiUpdateConversationSale,
   updateConversationStatus as apiUpdateConversationStatus,
 } from "@/api/conversationsApi";
@@ -37,14 +38,7 @@ function getStoredOrigin(): OriginCategory {
 function getStoredStatusFilter(): InboxFilter {
   try {
     const value = localStorage.getItem("statusFilter");
-    if (
-      value === "all" ||
-      value === "active" ||
-      value === "waiting_human" ||
-      value === "closed" ||
-      value === "potential_sale" ||
-      value === "sale_closed"
-    ) {
+    if (value === "all" || value === "active" || value === "waiting_human" || value === "closed" || value === "potential_sale" || value === "sale_closed") {
       return value;
     }
   } catch {
@@ -65,9 +59,7 @@ function getBackendStatusFilter(statusFilter: InboxFilter): ConversationStatus |
 function getConversationActivityTime(conversation: Conversation) {
   const lastMessageTime = new Date(conversation.lastMessageAt).getTime();
   const createdTime = new Date(conversation.createdAt).getTime();
-  const candidateTimes = [lastMessageTime, createdTime].filter(
-    (time) => Number.isFinite(time) && time > 0,
-  );
+  const candidateTimes = [lastMessageTime, createdTime].filter((time) => Number.isFinite(time) && time > 0);
 
   if (candidateTimes.length > 0) {
     return Math.max(...candidateTimes);
@@ -177,163 +169,213 @@ export function useConversations(options?: { enablePolling?: boolean }) {
     return [...list].sort((a, b) => getConversationActivityTime(b) - getConversationActivityTime(a));
   }, [conversations, statusFilter, flowFilter, originFilter]);
 
-  const assignConversation = useCallback(async (id: string, agentId: string) => {
-    const previousConversations = conversations;
+  const assignConversation = useCallback(
+    async (id: string, agentId: string) => {
+      const previousConversations = conversations;
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === id
-          ? {
-              ...conversation,
-              assignedTo: {
-                id: agentId,
-                name: "Asignado",
-                email: "",
-                role: "",
-                active: true,
-              },
-              status: "active" as ConversationStatus,
-            }
-          : conversation,
-      ),
-    );
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === id
+            ? {
+                ...conversation,
+                assignedTo: {
+                  id: agentId,
+                  name: "Asignado",
+                  email: "",
+                  role: "",
+                  active: true,
+                },
+                status: "active" as ConversationStatus,
+              }
+            : conversation,
+        ),
+      );
 
-    try {
-      await apiAssignConversation(id);
-      toast.success("Conversacion asignada");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "No se pudo asignar la conversacion";
-      toast.error(message);
-    }
-  }, [conversations]);
+      try {
+        await apiAssignConversation(id);
+        toast.success("Conversacion asignada");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "No se pudo asignar la conversacion";
+        toast.error(message);
+      }
+    },
+    [conversations],
+  );
 
-  const updateStatus = useCallback(async (id: string, status: ConversationStatus) => {
-    const previousConversations = conversations;
+  const updateStatus = useCallback(
+    async (id: string, status: ConversationStatus) => {
+      const previousConversations = conversations;
 
-    setConversations((prev) =>
-      prev.map((conversation) => (conversation.id === id ? { ...conversation, status } : conversation)),
-    );
+      setConversations((prev) => prev.map((conversation) => (conversation.id === id ? { ...conversation, status } : conversation)));
 
-    try {
-      await apiUpdateConversationStatus(id, status);
-      toast.success("Estado actualizado");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "No se pudo actualizar el estado";
-      toast.error(message);
-    }
-  }, [conversations]);
+      try {
+        await apiUpdateConversationStatus(id, status);
+        toast.success("Estado actualizado");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "No se pudo actualizar el estado";
+        toast.error(message);
+      }
+    },
+    [conversations],
+  );
 
-  const takeConversation = useCallback(async (id: string) => {
-    const previousConversations = conversations;
+  const takeConversation = useCallback(
+    async (id: string) => {
+      const previousConversations = conversations;
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === id
-          ? {
-              ...conversation,
-              status: "waiting_human" as ConversationStatus,
-              assignedTo: user
-                ? {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role ?? "",
-                    active: true,
-                  }
-                : conversation.assignedTo,
-            }
-          : conversation,
-      ),
-    );
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === id
+            ? {
+                ...conversation,
+                status: "waiting_human" as ConversationStatus,
+                assignedTo: user
+                  ? {
+                      id: user.id,
+                      name: user.name,
+                      email: user.email,
+                      role: user.role ?? "",
+                      active: true,
+                    }
+                  : conversation.assignedTo,
+              }
+            : conversation,
+        ),
+      );
 
-    try {
-      await apiTakeConversation(id);
-      toast.success("Conversacion tomada");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "No se pudo tomar la conversacion";
-      toast.error(message);
-      throw error;
-    }
-  }, [conversations, user]);
+      try {
+        await apiTakeConversation(id);
+        toast.success("Conversacion tomada");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "No se pudo tomar la conversacion";
+        toast.error(message);
+        throw error;
+      }
+    },
+    [conversations, user],
+  );
 
-  const markRead = useCallback(async (id: string) => {
-    try {
-      await markConversationRead(id);
-      await loadConversations();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo marcar la conversacion como leida";
-      toast.error(message);
-    }
-  }, [loadConversations]);
+  const markRead = useCallback(
+    async (id: string) => {
+      try {
+        await markConversationRead(id);
+        await loadConversations();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "No se pudo marcar la conversacion como leida";
+        toast.error(message);
+      }
+    },
+    [loadConversations],
+  );
 
-  const closeConversation = useCallback(async (id: string) => {
-    const previousConversations = conversations;
+  const closeConversation = useCallback(
+    async (id: string) => {
+      const previousConversations = conversations;
 
-    setConversations((prev) =>
-      prev.map((conversation) => (conversation.id === id ? { ...conversation, status: "closed" as ConversationStatus } : conversation)),
-    );
+      setConversations((prev) => prev.map((conversation) => (conversation.id === id ? { ...conversation, status: "closed" as ConversationStatus } : conversation)));
 
-    try {
-      await apiCloseConversation(id);
-      toast.success("Conversacion cerrada");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "Error al cerrar la conversacion";
-      toast.error(message);
-      throw error;
-    }
-  }, [conversations]);
+      try {
+        await apiCloseConversation(id);
+        toast.success("Conversacion cerrada");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "Error al cerrar la conversacion";
+        toast.error(message);
+        throw error;
+      }
+    },
+    [conversations],
+  );
 
-  const removeConversation = useCallback(async (id: string) => {
-    const previousConversations = conversations;
+  const removeConversation = useCallback(
+    async (id: string) => {
+      const previousConversations = conversations;
 
-    setConversations((prev) => prev.filter((conversation) => conversation.id !== id));
+      setConversations((prev) => prev.filter((conversation) => conversation.id !== id));
 
-    try {
-      await apiDeleteConversation(id);
-      toast.success("Conversacion eliminada");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "Error al eliminar la conversacion";
-      toast.error(message);
-      throw error;
-    }
-  }, [conversations]);
+      try {
+        await apiDeleteConversation(id);
+        toast.success("Conversacion eliminada");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "Error al eliminar la conversacion";
+        toast.error(message);
+        throw error;
+      }
+    },
+    [conversations],
+  );
 
-  const updateConversationSale = useCallback(async (id: string, saleType: "potential" | "closed") => {
-    const previousConversations = conversations;
+  const updateConversationSale = useCallback(
+    async (id: string, saleType: "potential" | "closed") => {
+      const previousConversations = conversations;
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === id
-          ? {
-              ...conversation,
-              isPotentialSale: saleType === "potential" ? true : conversation.isPotentialSale,
-              isClosedSale: saleType === "closed" ? true : conversation.isClosedSale,
-            }
-          : conversation,
-      ),
-    );
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === id
+            ? {
+                ...conversation,
+                isPotentialSale: saleType === "potential" ? true : conversation.isPotentialSale,
+                isClosedSale: saleType === "closed" ? true : conversation.isClosedSale,
+              }
+            : conversation,
+        ),
+      );
 
-    try {
-      const targetConversation = previousConversations.find((conversation) => conversation.id === id);
+      try {
+        const targetConversation = previousConversations.find((conversation) => conversation.id === id);
 
-      await apiUpdateConversationSale(id, {
-        isPotentialSale: saleType === "potential" ? true : targetConversation?.isPotentialSale ?? false,
-        isClosedSale: saleType === "closed" ? true : targetConversation?.isClosedSale ?? false,
-      });
+        await apiUpdateConversationSale(id, {
+          isPotentialSale: saleType === "potential" ? true : (targetConversation?.isPotentialSale ?? false),
+          isClosedSale: saleType === "closed" ? true : (targetConversation?.isClosedSale ?? false),
+        });
 
-      toast.success(saleType === "potential" ? "Marcada como venta potencial" : "Marcada como venta cerrada");
-    } catch (error) {
-      setConversations(previousConversations);
-      const message = error instanceof Error ? error.message : "No se pudo actualizar el estado de venta";
-      toast.error(message);
-      throw error;
-    }
-  }, [conversations]);
+        toast.success(saleType === "potential" ? "Marcada como venta potencial" : "Marcada como venta cerrada");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "No se pudo actualizar el estado de venta";
+        toast.error(message);
+        throw error;
+      }
+    },
+    [conversations],
+  );
+
+  // Actualiza el alias (nickname) de una conversacion. Ademas de guardar el valor
+  // crudo, recalcula leadName localmente (nickname si existe, si no el telefono)
+  // para que el listado refleje el alias sin esperar al proximo fetch/polling.
+  const updateNickname = useCallback(
+    async (id: string, nickname: string | null) => {
+      const previousConversations = conversations;
+      const normalizedNickname = nickname && nickname.trim() ? nickname.trim() : null;
+
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === id
+            ? {
+                ...conversation,
+                nickname: normalizedNickname,
+                leadName: normalizedNickname || conversation.leadPhone,
+              }
+            : conversation,
+        ),
+      );
+
+      try {
+        await apiUpdateConversationNickname(id, normalizedNickname);
+        toast.success("Alias actualizado");
+      } catch (error) {
+        setConversations(previousConversations);
+        const message = error instanceof Error ? error.message : "No se pudo actualizar el alias";
+        toast.error(message);
+        throw error;
+      }
+    },
+    [conversations],
+  );
 
   return {
     conversations: filtered,
@@ -354,6 +396,7 @@ export function useConversations(options?: { enablePolling?: boolean }) {
     closeConversation,
     removeConversation,
     updateConversationSale,
+    updateNickname,
   };
 }
 
@@ -549,6 +592,7 @@ export function useLead(conversation?: Conversation): Lead | undefined {
     id: conversation.leadId,
     name: conversation.leadName,
     phone: conversation.leadPhone,
+    nickname: conversation.nickname ?? null,
     createdAt: conversation.createdAt,
   };
 }
