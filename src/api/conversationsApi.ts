@@ -248,6 +248,7 @@ function mapConversation(apiConversation: ConversationApiResponse): Conversation
     leadId: typeof apiConversation.leadId === "string" ? apiConversation.leadId : id,
     leadName: getDisplayName(apiConversation, waId),
     leadPhone,
+    nickname: typeof apiConversation.nickname === "string" ? apiConversation.nickname : null,
     status: normalizeConversationStatus(apiConversation.status),
     currentState: typeof apiConversation.currentState === "string" ? apiConversation.currentState : "MENU",
     origin: normalizeConversationOrigin(typeof apiConversation.origin === "string" ? apiConversation.origin : undefined),
@@ -350,6 +351,16 @@ export async function updateConversationSale(conversationId: string, payload: { 
   });
 
   await assertOk(response, "No se pudo actualizar el estado de venta de la conversacion");
+}
+
+export async function updateConversationNickname(conversationId: string, nickname: string | null): Promise<void> {
+  const response = await apiFetch(`/conversations/${conversationId}/nickname`, {
+    method: "PATCH",
+    includeJsonContentType: true,
+    body: JSON.stringify({ nickname }),
+  });
+
+  await assertOk(response, "No se pudo actualizar el alias de la conversacion");
 }
 
 export async function closeConversation(conversationId: string): Promise<void> {

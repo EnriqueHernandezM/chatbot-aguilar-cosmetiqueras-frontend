@@ -33,6 +33,7 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
+  nickname?: string | null;
   email?: string;
   company?: string;
   notes?: string;
@@ -47,6 +48,7 @@ export interface Conversation {
   leadId: string;
   leadName: string;
   leadPhone: string;
+  nickname?: string | null;
   status: ConversationStatus;
   currentState: ConversationState;
   origin: ConversationOrigin;
