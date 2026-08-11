@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { X, Images } from "lucide-react";
 import { useGallery } from "@/hooks/useGallery";
 import { GalleryItem } from "@/modules/types";
@@ -5,7 +6,7 @@ import { GalleryItem } from "@/modules/types";
 interface GallerySheetProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (item: GalleryItem) => void;
+  onSelect: (items: GalleryItem[]) => void;
 }
 
 function getGalleryThumbnailUrl(url: string): string {
@@ -19,17 +20,28 @@ function getGalleryThumbnailUrl(url: string): string {
 export function GallerySheet({ open, onClose, onSelect }: GallerySheetProps) {
   // useGallery solo debe pedir datos cuando `open` es true (ver contrato en el prompt de Codex).
   const { items, isLoading, error, reload } = useGallery({ enabled: open });
+  const [selectedItems, setSelectedItems] = useState<GalleryItem[]>([]);
 
   if (!open) {
     return null;
   }
 
   const handleClose = () => {
+    setSelectedItems([]);
     onClose();
   };
 
-  const handleSelect = (item: GalleryItem) => {
-    onSelect(item);
+  const handleToggleSelect = (item: GalleryItem) => {
+    setSelectedItems((prev) => (prev.some((selectedItem) => selectedItem.id === item.id) ? prev.filter((selectedItem) => selectedItem.id !== item.id) : [...prev, item]));
+  };
+
+  const handleDone = () => {
+    if (selectedItems.length === 0) {
+      return;
+    }
+
+    onSelect(selectedItems);
+    setSelectedItems([]);
     onClose();
   };
 
@@ -65,13 +77,39 @@ export function GallerySheet({ open, onClose, onSelect }: GallerySheetProps) {
             <p className="py-8 text-center text-sm text-muted-foreground">Aun no hay imagenes guardadas en la galeria.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {items.map((item) => (
-                <button key={item.id} onClick={() => handleSelect(item)} className="relative overflow-hidden rounded-xl border border-border bg-secondary" type="button">
-                  <img src={getGalleryThumbnailUrl(item.url)} alt={item.title || "Imagen de galeria"} className="h-24 w-full object-cover" />
-                </button>
-              ))}
+              {items.map((item) => {
+                const isSelected = selectedItems.some((selectedItem) => selectedItem.id === item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleToggleSelect(item)}
+                    className="relative overflow-hidden rounded-xl border border-border bg-secondary"
+                    type="button"
+                    aria-pressed={isSelected}
+                  >
+                    <img src={getGalleryThumbnailUrl(item.url)} alt={item.title || "Imagen de galeria"} className="h-24 w-full object-cover" />
+                    {isSelected && (
+                      <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                        {selectedItems.findIndex((selectedItem) => selectedItem.id === item.id) + 1}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
+        </div>
+
+        <div className="shrink-0 border-t border-border px-4 py-3">
+          <button
+            onClick={handleDone}
+            className="w-full rounded-xl bg-primary px-3.5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-40"
+            type="button"
+            disabled={selectedItems.length === 0}
+          >
+            {selectedItems.length > 0 ? `Listo (${selectedItems.length})` : "Listo"}
+          </button>
         </div>
       </div>
     </>

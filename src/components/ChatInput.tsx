@@ -156,20 +156,20 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
     e.target.value = "";
   };
 
-  const handleSelectGalleryImage = (item: GalleryItem) => {
+  const handleSelectGalleryImages = (items: GalleryItem[]) => {
     if (disabled) {
       return;
     }
 
     setPendingImages((prev) => [
       ...prev,
-      {
+      ...items.map((item) => ({
         id: `gallery_${item.id}_${crypto.randomUUID()}`,
         source: "gallery",
         item,
         previewUrl: item.url,
         name: item.title || "Imagen de galeria",
-      },
+      })),
     ]);
     setMode("text");
 
@@ -303,7 +303,7 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
 
       <QuickReplySheet open={showQuickReply} onClose={() => setShowQuickReply(false)} onSelect={handleSelectQuickReply} />
 
-      {onSendGalleryImage && <GallerySheet open={showGallery} onClose={() => setShowGallery(false)} onSelect={handleSelectGalleryImage} />}
+      {onSendGalleryImage && <GallerySheet open={showGallery} onClose={() => setShowGallery(false)} onSelect={handleSelectGalleryImages} />}
     </>
   );
 }
