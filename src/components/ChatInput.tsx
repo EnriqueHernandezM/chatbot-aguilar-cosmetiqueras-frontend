@@ -5,10 +5,23 @@ import { GalleryItem, MessageType } from "@/modules/types";
 import { QuickReplySheet } from "@/components/QuickReplySheet";
 import { GallerySheet } from "@/components/GallerySheet";
 
-interface PendingImage {
+interface PendingDeviceImage {
+  id: string;
+  source: "device";
   file: File;
   previewUrl: string;
+  name: string;
 }
+
+interface PendingGalleryImage {
+  id: string;
+  source: "gallery";
+  item: GalleryItem;
+  previewUrl: string;
+  name: string;
+}
+
+type PendingImage = PendingDeviceImage | PendingGalleryImage;
 
 interface ChatInputProps {
   onSend: (content: string, type: MessageType, files?: File[]) => Promise<void>;
@@ -41,19 +54,23 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
 
   const clearPendingImages = () => {
     setPendingImages((prev) => {
-      prev.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+      prev.forEach((image) => {
+        if (image.source === "device") {
+          URL.revokeObjectURL(image.previewUrl);
+        }
+      });
       return [];
     });
   };
 
-  const removePendingImage = (previewUrl: string) => {
+  const removePendingImage = (id: string) => {
     setPendingImages((prev) => {
-      const imageToRemove = prev.find((image) => image.previewUrl === previewUrl);
-      if (imageToRemove) {
+      const imageToRemove = prev.find((image) => image.id === id);
+      if (imageToRemove?.source === "device") {
         URL.revokeObjectURL(imageToRemove.previewUrl);
       }
 
-      return prev.filter((image) => image.previewUrl !== previewUrl);
+      return prev.filter((image) => image.id !== id);
     });
   };
 
@@ -64,11 +81,28 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
 
     try {
       if (pendingImages.length > 0) {
-        await onSend(
-          "",
-          "image",
-          pendingImages.map((image) => image.file),
-        );
+        const trimmed = text.trim();
+        const deviceImages = pendingImages.filter((image): image is PendingDeviceImage => image.source === "device");
+        const galleryImages = pendingImages.filter((image): image is PendingGalleryImage => image.source === "gallery");
+
+        if (deviceImages.length > 0) {
+          await onSend(
+            "",
+            "image",
+            deviceImages.map((image) => image.file),
+          );
+        }
+
+        if (onSendGalleryImage) {
+          for (const image of galleryImages) {
+            await onSendGalleryImage(image.item);
+          }
+        }
+
+        if (trimmed) {
+          await onSend(trimmed, "text");
+        }
+
         clearPendingImages();
         setText("");
         inputRef.current?.focus();
@@ -109,14 +143,39 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
       return;
     }
 
-    const newImages = selectedFiles.map((file) => ({
+    const newImages: PendingImage[] = selectedFiles.map((file) => ({
+      id: `device_${file.name}_${file.lastModified}_${crypto.randomUUID()}`,
+      source: "device",
       file,
       previewUrl: URL.createObjectURL(file),
+      name: file.name,
     }));
 
     setPendingImages((prev) => [...prev, ...newImages]);
     setMode("text");
     e.target.value = "";
+  };
+
+  const handleSelectGalleryImage = (item: GalleryItem) => {
+    if (disabled) {
+      return;
+    }
+
+    setPendingImages((prev) => [
+      ...prev,
+      {
+        id: `gallery_${item.id}_${crypto.randomUUID()}`,
+        source: "gallery",
+        item,
+        previewUrl: item.url,
+        name: item.title || "Imagen de galeria",
+      },
+    ]);
+    setMode("text");
+
+    window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const canSend = (text.trim() || pendingImages.length > 0) && !isSending && !disabled;
@@ -153,9 +212,9 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
           <div className="px-3 pb-1 pt-2">
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {pendingImages.map((image) => (
-                <div key={image.previewUrl} className="relative overflow-hidden rounded-xl border border-border bg-secondary">
-                  <img src={image.previewUrl} alt={image.file.name} className="h-24 w-full object-cover" />
-                  <button onClick={() => removePendingImage(image.previewUrl)} className="absolute right-2 top-2 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center" type="button">
+                <div key={image.id} className="relative overflow-hidden rounded-xl border border-border bg-secondary">
+                  <img src={image.previewUrl} alt={image.name} className="h-24 w-full object-cover" />
+                  <button onClick={() => removePendingImage(image.id)} className="absolute right-2 top-2 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center" type="button">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -174,9 +233,9 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === "note" ? "Escribe una nota interna..." : pendingImages.length > 0 ? "Las imagenes se enviaran como un mensaje de imagen" : "Escribe un mensaje..."}
+            placeholder={mode === "note" ? "Escribe una nota interna..." : pendingImages.length > 0 ? "Agrega un mensaje para enviar con las imagenes..." : "Escribe un mensaje..."}
             rows={1}
-            disabled={isSending || pendingImages.length > 0 || disabled}
+            disabled={isSending || disabled}
             className="min-h-[44px] w-full min-w-0 max-h-32 resize-none overflow-y-auto rounded-2xl bg-secondary px-3 py-2.5 mb-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
           />
 
@@ -191,7 +250,7 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
                 )}
                 title="Nota interna"
                 type="button"
-                disabled={disabled}
+                disabled={disabled || pendingImages.length > 0}
               >
                 <StickyNote className="w-5 h-5" />
               </button>
@@ -244,7 +303,7 @@ export function ChatInput({ onSend, onSendGalleryImage, isSending = false, disab
 
       <QuickReplySheet open={showQuickReply} onClose={() => setShowQuickReply(false)} onSelect={handleSelectQuickReply} />
 
-      {onSendGalleryImage && <GallerySheet open={showGallery} onClose={() => setShowGallery(false)} onConfirm={onSendGalleryImage} />}
+      {onSendGalleryImage && <GallerySheet open={showGallery} onClose={() => setShowGallery(false)} onSelect={handleSelectGalleryImage} />}
     </>
   );
 }

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { X, Images } from "lucide-react";
 import { useGallery } from "@/hooks/useGallery";
 import { GalleryItem } from "@/modules/types";
@@ -6,43 +5,32 @@ import { GalleryItem } from "@/modules/types";
 interface GallerySheetProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (item: GalleryItem, caption?: string) => Promise<void>;
+  onSelect: (item: GalleryItem) => void;
 }
 
-export function GallerySheet({ open, onClose, onConfirm }: GallerySheetProps) {
+function getGalleryThumbnailUrl(url: string): string {
+  if (!url.includes("res.cloudinary.com") || !url.includes("/image/upload/")) {
+    return url;
+  }
+
+  return url.replace("/image/upload/", "/image/upload/w_300,q_auto,f_auto/");
+}
+
+export function GallerySheet({ open, onClose, onSelect }: GallerySheetProps) {
   // useGallery solo debe pedir datos cuando `open` es true (ver contrato en el prompt de Codex).
   const { items, isLoading, error, reload } = useGallery({ enabled: open });
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
-  const [caption, setCaption] = useState("");
-  const [isSending, setIsSending] = useState(false);
 
   if (!open) {
     return null;
   }
 
   const handleClose = () => {
-    setSelectedItem(null);
-    setCaption("");
     onClose();
   };
 
-  const handleConfirm = async () => {
-    if (!selectedItem || isSending) {
-      return;
-    }
-
-    setIsSending(true);
-
-    try {
-      await onConfirm(selectedItem, caption.trim() || undefined);
-      setSelectedItem(null);
-      setCaption("");
-      onClose();
-    } catch {
-      // Error toast se maneja arriba; mantenemos la seleccion para poder reintentar.
-    } finally {
-      setIsSending(false);
-    }
+  const handleSelect = (item: GalleryItem) => {
+    onSelect(item);
+    onClose();
   };
 
   return (
@@ -64,31 +52,7 @@ export function GallerySheet({ open, onClose, onConfirm }: GallerySheetProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3" style={{ WebkitOverflowScrolling: "touch" }}>
-          {selectedItem ? (
-            <div className="flex flex-col gap-3">
-              <div className="overflow-hidden rounded-xl border border-border bg-secondary">
-                <img src={selectedItem.url} alt={selectedItem.title || "Imagen de galeria"} className="max-h-64 w-full object-contain" />
-              </div>
-
-              {selectedItem.title && <p className="text-xs text-muted-foreground">{selectedItem.title}</p>}
-
-              <input
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="Agregar un mensaje (opcional)"
-                className="w-full rounded-2xl bg-secondary px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-
-              <div className="flex gap-2">
-                <button onClick={() => setSelectedItem(null)} className="flex-1 rounded-xl bg-secondary px-3.5 py-3 text-sm font-medium text-foreground hover:bg-accent" type="button" disabled={isSending}>
-                  Elegir otra
-                </button>
-                <button onClick={handleConfirm} className="flex-1 rounded-xl bg-primary px-3.5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50" type="button" disabled={isSending}>
-                  {isSending ? "Enviando..." : "Enviar"}
-                </button>
-              </div>
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Cargando galeria...</p>
           ) : error ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
@@ -102,8 +66,8 @@ export function GallerySheet({ open, onClose, onConfirm }: GallerySheetProps) {
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {items.map((item) => (
-                <button key={item.id} onClick={() => setSelectedItem(item)} className="relative overflow-hidden rounded-xl border border-border bg-secondary" type="button">
-                  <img src={item.url} alt={item.title || "Imagen de galeria"} className="h-24 w-full object-cover" />
+                <button key={item.id} onClick={() => handleSelect(item)} className="relative overflow-hidden rounded-xl border border-border bg-secondary" type="button">
+                  <img src={getGalleryThumbnailUrl(item.url)} alt={item.title || "Imagen de galeria"} className="h-24 w-full object-cover" />
                 </button>
               ))}
             </div>
